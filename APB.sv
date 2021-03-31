@@ -44,11 +44,11 @@ interface Memory_Bus();
 endinterface 
 
 interface Processor_Bus();
-    logic wrdn, rden, clk, reset;
+    logic write, clk, reset, sel, ready;
     logic [7:0] wdata, rdata, addr;
 
-    modport processor ();
-    modport master ();
+    modport processor (input clk, rdata, ready, output write, sel, reset, addr, wdata);
+    modport master (input clk, write, sel, reset, addr, wdata, output, rdata, ready);
 endinterface
 
 module APB_Slave(APB.slave sl, Memory_Bus.slave msl);
@@ -144,10 +144,10 @@ module APB_Slave(APB.slave sl, Memory_Bus.slave msl);
 endmodule
 
 
-module APB_Master(APB.master ms, Memory_Bus. msl);
+module APB_Master(APB.master ms, Processor_Bus.master pm);
     logic [2:0] state;
     logic [2:0] next_state;
-    parameter s_idle = 0, s_write = 1, s_read = 2, s_write_done=3, s_read_done=4;
+    parameter s_idle = 0, s_setup = 1, s_access = 2;
     logic [7:0] cycles_remaining;
     assign msl.clk = sl.clk;
     assign msl.addr = sl.addr;
@@ -208,29 +208,19 @@ module APB_Master(APB.master ms, Memory_Bus. msl);
     end
     
     //Control Signals
-    always @(posedge sl.clk) begin
+    always @(posedge pm.clk) begin
         state = next_state;
         if (state == s_idle) begin
-            sl.ready <= 1'b0;
-            msl.wren <= 1'b0;
-            msl.rden <= 1'b0;
-        end else if (state == s_write) begin
+            pm.enable = 1'b0;
+        end else if (state == s_setup) begin
             sl.ready <= 1'b0;
             msl.wren <= 1'b1;
             msl.rden <= 1'b0;         
-        end else if (state == s_read) begin
+        end else if (state == s_access) begin
             sl.ready <= 1'b0;
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
-        end else if (state == s_write_done) begin
-            sl.ready <= 1'b1;
-            msl.wren <= 1'b1;
-            msl.rden <= 1'b0;
-        end else if (state == s_read_done) begin
-            sl.ready <= 1'b1;
-            msl.wren <= 1'b0;
-            msl.rden <= 1'b1;
-        end 
+        end
         
     end
     
