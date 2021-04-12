@@ -19,8 +19,8 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-interface APB (input logic clk);
-    logic write, ready, enable, reset;
+interface APB (input logic clk, input logic reset);
+    logic write, ready, enable;
     logic [7:0] wdata, rdata, addr, wait_cycles;
     logic [1:0] sel;
 
@@ -39,20 +39,27 @@ interface Memory_Bus();
     logic wren, rden, clk;
     logic [7:0] wdata, rdata, addr;
 
-    modport slave (input rdata, output wdata, wren, rden, clk, addr);
-    modport mem (output rdata, addr, input wdata, wren, rden, clk);
+    modport slave (input rdata, output wdata, wren, rden, clk, addr, ce);
+    modport mem (output rdata, addr, ce, input wdata, wren, rden, clk);
 endinterface 
 
-interface Processor_Bus(); // not sure if processor should determine wait cycles, but it seems logical to pass that functionality to the processor as opposed to a general purpose bus
+interface Processor_Bus(input logic clk, input logic reset); // not sure if processor should determine wait cycles, but it seems logical to pass that functionality to the processor as opposed to a general purpose bus
     logic write, clk, reset, ready, start;
     logic [7:0] wdata, rdata, addr, wait_cycles;
     logic [1:0] sel;
 
-    modport processor (input clk, rdata, ready, output write, sel, reset, addr, wdata, start, wait_cycles);
+    task reset_master;
+        @ (negedge clk);
+        reset = 1'b1;
+        @ (negedge clk);
+        reset = 1'b0;
+    endtask
+
+    modport processor (input clk, rdata, ready, output write, sel, addr, wdata, start, wait_cycles);
     modport master (input clk, write, sel, reset, addr, wdata, start, wait_cycles, output, rdata, ready);
 endinterface
 
-module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id);
+module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id); // fix next state logic
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_write = 1, s_read = 2, s_write_done=3, s_read_done=4;
@@ -60,6 +67,7 @@ module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id);
     assign msl.clk = sl.clk;
     assign msl.addr = sl.addr;
     assign msl.wdata = sl.wdata;
+    assign msl.rdata = sl.rdata;
 
     //States
     always @(negedge sl.clk) begin
@@ -122,22 +130,27 @@ module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id);
             sl.ready <= 1'b0;
             msl.wren <= 1'b0;
             msl.rden <= 1'b0;
+            msl.ce <= 1'b0;
         end else if (state == s_write) begin
             sl.ready <= 1'b0;
             msl.wren <= 1'b1;
-            msl.rden <= 1'b0;         
+            msl.rden <= 1'b0;
+            msl.ce <= 1'b1;         
         end else if (state == s_read) begin
             sl.ready <= 1'b0;
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
+            msl.ce <= 1'b1;
         end else if (state == s_write_done) begin
             sl.ready <= 1'b1;
             msl.wren <= 1'b1;
             msl.rden <= 1'b0;
+            msl.ce <= 1'b1;
         end else if (state == s_read_done) begin
             sl.ready <= 1'b1;
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
+            msl.ce <= 1'b1;
         end 
         
     end
@@ -153,41 +166,46 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
     
 
     //States
-    always @(negedge pm.clk) begin
-        if (pm.reset) begin
-            next_state <= s_idle;
-        end else if (state == s_idle) begin
+    always @(*) begin
+        if (state == s_idle) begin
             case (pm.start) // basing state changes off of the start signal that comes from the processor - might be flawed way of implementing
                 1'b1: 
                     begin
-                        next_state <= s_setup;
+                        next_state = s_setup;
                     end
         end else if (state == s_setup) begin
-            next_state <= s_access; //access always happens on next clock after setup phase
+            next_state = s_access; //access always happens on next clock after setup phase
         end else if (state == s_access) begin
             case (ms.ready)
                 1'b0:
                     begin
-                        next_state <= s_access;
+                        next_state = s_access;
                     end
                 1'b1:
                     begin
                         case (pm.start) 
                             1'b0: 
                                 begin
-                                    next_state <= s_idle;
+                                    next_state = s_idle;
                                 end
                             1'b1: //and if pm.sel is nonzero - too lazy atm to add that, not to mention there is probably efficient syntax that i dont know
                                 begin
-                                    next_state <= s_setup;
+                                    next_state = s_setup;
                                 end
                     end
         end
     end
-    
-    //Control Signals
+
     always @(posedge pm.clk) begin
-        state = next_state;
+        if (pm.reset) begin
+            state <= s_idle;
+        end else begin
+            state <= next_state;
+        end
+    end
+
+    //Control Signals
+    always @(posedge pm.clk) begin 
         if (state == s_idle) begin
             ms.sel <= 2'b00;
             pm.enable <= 1'b0;
