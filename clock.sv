@@ -1,7 +1,7 @@
 `timescale 1 ns / 1 ps
 module cpu;
 
-reg clk,clk2;
+logic clk,clk2;
 
 bit_cpu cpu(.clk(clk),.clk2(clk2));
 
