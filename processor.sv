@@ -49,7 +49,7 @@ decoder decoder(.inst(inst),
 		);
 
 
-control  control(
+control_unit  control(
 		 .opcode(opcode),
 		 .func(func),
 		 .reg_dst(reg_dst),
@@ -61,7 +61,7 @@ control  control(
 		 .nia(nia)
 		 );
 
-mux2to1_3bit new(
+mux2to1_3bit bitter(
 			.rb_addr(rb_addr),
 			.rd_addr(rd_addr),
 			.sel(reg_dst),

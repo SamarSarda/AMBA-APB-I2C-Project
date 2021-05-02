@@ -42,6 +42,16 @@ initial
   "\treg[7] = %b\n", reg_array[7]);
   
   $fclose(f);
+  
+  $display ("time = %d\n", $time, 
+  "\treg[0] = %b\n", reg_array[0],   
+  "\treg[1] = %b\n", reg_array[1],
+  "\treg[2] = %b\n", reg_array[2],
+  "\treg[3] = %b\n", reg_array[3],
+  "\treg[4] = %b\n", reg_array[4],
+  "\treg[5] = %b\n", reg_array[5],
+  "\treg[6] = %b\n", reg_array[6],
+  "\treg[7] = %b\n", reg_array[7]);
  end
 
 

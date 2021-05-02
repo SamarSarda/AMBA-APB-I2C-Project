@@ -6,7 +6,7 @@ module mux2to1_3bit (
     ); 
     reg [2:0] final_addr;
 
-    always @(rd_addr,rb_addr,final_addr)
+    always @(rd_addr,rb_addr,final_addr, sel)
     begin
         if(sel == 0) 
             final_addr = rb_addr; 
