@@ -159,6 +159,7 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
                     begin
                         next_state = s_setup;
                     end
+            endcase
         end else if (state == s_setup) begin
             next_state = s_access; //access always happens on next clock after setup phase
         end else if (state == s_access) begin
@@ -178,7 +179,9 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
                                 begin
                                     next_state = s_setup;
                                 end
+                         endcase 
                     end
+              endcase
         end
     end
 
