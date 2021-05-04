@@ -41,7 +41,7 @@ $writememb ("C:\Users\samsa\Desktop\ENEE459D\I2C project\I2C project.sim\sim_1\b
  
   
 
-  /*
+  
   $display ("time = %d\n", $time, 
   "\treg[0] = %b\n", reg_array[0],   
   "\treg[1] = %b\n", reg_array[1],
@@ -51,8 +51,7 @@ $writememb ("C:\Users\samsa\Desktop\ENEE459D\I2C project\I2C project.sim\sim_1\b
   "\treg[5] = %b\n", reg_array[5],
   "\treg[6] = %b\n", reg_array[6],
   "\treg[7] = %b\n", reg_array[7]);
- end
-*/
+ 
 end
 
 assign  reg1_read_data = reg_array[reg1_read_addr];

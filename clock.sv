@@ -36,8 +36,9 @@ initial begin
 $readmemb ("C:\Users\samsa\Desktop\ENEE459D\I2C project\I2C project.sim\sim_1\behav\xsim\result.dat",read_array,0,7); 
 $display("im gere now");
 for (i = 0; i<7; i=i+1)
-    if(reg_array[i] != read_array[i]) begin
-        $display("an error occurred");
-    end
+    //if(reg_array[i] != read_array[i]) begin
+    //    $display("an error occurred");
+    //end
+    $display("%b", read_array[i]);
 end
 endmodule
