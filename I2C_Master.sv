@@ -60,17 +60,18 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
 
     //next state gen
     always @(*) begin // need to add state_completed code
-         test <= clk_pulse_counter;
-         if (apb.ce == 0 && state !== 5'bxxxxx && (state != s_idle || state != s_stop)) begin//could have errors on initialization
-            next_state <= s_error;
+         test = data;
+         if (apb.ce == 0 && state !== 5'bxxxxx && (state != s_idle && state != s_stop)) begin//could have errors on initialization
+            next_state = s_error;
          end else if (state == s_stop && state_completed == s_stop) begin
-             next_state <= s_idle;
+             next_state = s_idle;
          end else if (state == s_idle) begin//may require checking other signals for validity
             if (apb.ce) begin
-                 next_state <= s_start;//clocked
+                 next_state = s_start;//clocked
              end
          end else if (state == s_start && state_completed == s_start) begin//need to and with completed
              next_state = s_slave_address;
+             
          end else if (state == s_slave_address && state_completed == s_slave_address) begin
             case (counter) //these cases are redundant, since state completed involves checking these values
                 8:
@@ -92,9 +93,9 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
             endcase
         end else if (state == s_acknowledge_address && state_completed == s_acknowledge_address) begin
             if (apb.rden) begin
-                next_state <= s_read;
+                next_state = s_read;
             end else begin
-                next_state <= s_write;
+                next_state = s_write;
             end
         end else if (state == s_write && state_completed == s_write) begin
             case (counter) 
@@ -136,7 +137,7 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
             next_state = s_idle;
             state_completed <= s_none;
         end else begin
-            state = next_state;//nonblocking so it happens first
+            state = next_state;//blocking so it happens first
         end
     end
     //state actions on clk
@@ -146,7 +147,7 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
         
         if (state == s_start) begin //start signal gen
             
-            if (x2clk_pulse_counter == 0 && clk_pulse_counter == 5 && ms.SCL == 0) begin // making sure it starts with middle of negedge
+            if (x2clk_pulse_counter == 0 && clk_pulse_counter == 6 && ms.SCL == 0) begin // making sure it starts with middle of negedge
                 ms.SDA = 1;
                 x2clk_pulse_counter = x2clk_pulse_counter + 1;
             end else if (x2clk_pulse_counter > 0 && x2clk_pulse_counter < 3) begin
@@ -159,13 +160,16 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
                 
             
         end else if (state == s_stop) begin //stop signal gen
-            if (x2clk_pulse_counter == 0 && clk_pulse_counter == 2 && ms.SCL == 0) begin // making sure it starts with middle of negedge
+            if (x2clk_pulse_counter == 0 && clk_pulse_counter == 6 && ms.SCL == 0) begin // making sure it starts with middle of negedge
                 ms.SDA = 0;
-            end else if(x2clk_pulse_counter == 4) begin
+                x2clk_pulse_counter = x2clk_pulse_counter + 1;
+            end else if (x2clk_pulse_counter > 0 && x2clk_pulse_counter < 3) begin
+                x2clk_pulse_counter = x2clk_pulse_counter + 1;
+            end else if(x2clk_pulse_counter == 3) begin
                 ms.SDA = 1;
                 state_completed = s_stop;
-            end 
                 x2clk_pulse_counter = x2clk_pulse_counter + 1;
+            end 
         end else if (state == s_error) begin
             apb.error <= 1;
             next_state <= s_idle;
@@ -298,8 +302,10 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
             if (data[0] !== 1'bx && data[1] !== 1'bx && data[2] !== 1'bx && data[3] !== 1'bx
             && data[4] !== 1'bx && data[5] !== 1'bx && data[6] !== 1'bx && data[7] !== 1'bx) begin
                 ms.SDA <= 0;//1 if error, 0 if ack
+                apb.rdata <= data;
                 //apb timing needs to line up here for read ops
             end else begin//error occurrs, probably do not want a ready signal being sent
+                
                 state <= s_error;
                 next_state <= s_error;
                 state_completed <= s_none;

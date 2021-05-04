@@ -30,6 +30,7 @@ module I2C_master_testbench();
     logic reset;
     logic [4:0] state;
     logic [7:0] test;
+    logic [7:0] final_data;
     
     //apb-master signals
     logic wren, rden, clk, ce, error;
@@ -69,11 +70,11 @@ module I2C_master_testbench();
         
         @(negedge clk);
         rden = 1;
+        wren = 0;
         ce = 1;
         addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
-        //start state initialized after 2 clk8s
+
         @(posedge clk);//read transfer starting with start state
-        //start state ends afte 2 clk8s
         
         //device address bits sent at each negedge
         @(posedge clk);//device address
@@ -120,28 +121,42 @@ module I2C_master_testbench();
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
+        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from master
+        @(negedge clk); I2C.SDA <= 0; @(posedge clk);
+        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
+        
+        @(negedge clk); I2C.SDA = 1; @(posedge clk);//acknowledge from master
+        
+        final_data <= apb.rdata;
+        
+        //stop happens between here
+        
+        
+        @(negedge clk);//reseting ce so that master stays idle
+        ce <= 0;
+        
+        @(posedge clk); 
+        
+        //idle state starts between here
+        
+        @(negedge clk);
+        @(posedge clk);//still idle
+        @(posedge clk);//still idle
         
         //write tranfer
-        @(posedge clk);//stop condition
-
-        I2C.SDA <= 0;
-        @(posedge clk8x);
-        @(posedge clk8x);
-        I2C.SDA <= 1;
-        @(posedge clk);//start condition
-        I2C.SDA <= 1;
-        @(posedge clk8x);
-        @(posedge clk8x);
-        I2C.SDA <= 0;
+        @(negedge clk);
+        rden = 0;
+        wren = 1;
+        wdata = 8'b01011111;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
         
+        //write transfer starting with start state
         
+        @(posedge clk);//start
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//device address
+        @(posedge clk);//device address
         //0
         @(posedge clk);
         //0
@@ -155,29 +170,30 @@ module I2C_master_testbench();
         //0
         @(posedge clk);
         //0
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
+        @(posedge clk);
         //1
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//write
+        @(posedge clk);//write
         //0
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);//acknowledge selection
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//memory address
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
-        //1
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);
-        //0
+        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//slave acknowledge selection
         
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);//acknowledge from slave
+        @(posedge clk);//memory address
+        //0
+        @(posedge clk);
+        //0
+        @(posedge clk);
+        //0
+        @(posedge clk);
+        //0
+        @(posedge clk);
+        //0
+        @(posedge clk);
+        //0
+        @(posedge clk);
+        //0
+        @(posedge clk);
+        //1
+        
+        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from slave
         
         @(posedge clk);//data write
         //0
@@ -196,64 +212,24 @@ module I2C_master_testbench();
         @(posedge clk);
         //1
         
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);//acknowledge from slave
-
-        //read transfer of written data
-        @(posedge clk);//re-start condition
-        I2C.SDA <= 1;
-        @(posedge clk8x);
-        @(posedge clk8x);
-        I2C.SDA <= 0;
+        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from slave
         
-        @(posedge clk);//device address
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
-        //1
-        @(posedge clk);//read
-        //1
-        @(negedge clk); I2C.SDA <= 1;@(posedge clk);//acknowledge selection
+        //reseting ce so that master stays idle
+        @(negedge clk);
+        ce <= 0;
+        @(posedge clk); //still idle
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//memory address
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(posedge clk);
-        //0
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
-        //1
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);
-        //0
+        //stop happens between here
         
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);//acknowledge from slave
+        @(negedge clk);
         
-        @(posedge clk);//data read
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
+        //idle state starts between here
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from master
+        @(posedge clk); //still idle
+        @(posedge clk); //still idle
+        @(posedge clk); //still idle
+        @(posedge clk); //still idle
+           
         
         
         
