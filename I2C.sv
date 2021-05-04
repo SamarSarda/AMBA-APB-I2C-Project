@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 02/17/2021 09:27:24 AM
+// Create Date: 04/25/2021 07:01:20 PM
 // Design Name: 
-// Module Name: APB_Slave
+// Module Name: I2C_Slave
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -19,6 +19,9 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+
+//make test modport to make valuable signals visible e.g. state, buffers, id
+//chanege all if/else to case
 interface I2C ();
     logic SDA, SCL, reset;
     
@@ -33,7 +36,7 @@ interface I2C ();
     modport slave (input reset, inout SDA, SCL);
 endinterface
 
-interface Memory_Bus();
+interface I2C_Memory_Bus();
     logic wren, rden, clk, ce;
     logic [7:0] wdata, rdata, addr;
 
@@ -46,204 +49,283 @@ interface Memory_Bus();
     endtask
 
     modport slave (input rdata, output wdata, wren, rden, clk, addr, ce);
-    modport mem (output rdata, addr, ce, input wdata, wren, rden, clk);
+    modport mem (output rdata, addr, input wdata, wren, rden, clk, ce);
 endinterface 
 
-module I2C_Slave(I2C.slave sl, Memory_Bus.slave mem, logic [7:0] id);
-    logic [3:0] state;
-    logic [3:0] next_state;
-    parameter s_stop = 0, s_slave_address = 1, s_rw = 2, s_acknowledge_selection = 3, s_mem_address = 4, s_acknowledge_address = 5, s_read = 6, s_write = 7, s_r_acknowledge = 8, s_w_acknowledge = 9;
-    logic [7:0] slave_address_buffer, mem_address_buffer, data;
-    logic [2:0] counter;
-    logic start;
-    logic write;
-    mem.clk = sl.SCL;
+interface APB_I2C_Bus();
+    logic wren, rden, clk, ce, error;
+    logic [7:0] wdata, rdata, addr;
 
+    modport APB (input rdata, error, output wdata, wren, rden, clk, addr, ce);
+    modport master (output rdata, addr, error, input wdata, wren, rden, clk, ce);
+endinterface
+
+
+module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, output logic [3:0] state, output logic [7:0] slave_address_buffer_m, input logic clk);//change id to 4bits
+    logic [3:0] next_state, state_completed;
+    parameter s_stop = 0, s_slave_address = 1, s_rw = 2, 
+    s_acknowledge_selection = 3, s_mem_address = 4, s_acknowledge_address = 5, 
+    s_read = 6, s_write = 7, s_r_acknowledge = 8, s_w_acknowledge = 9, s_none = 10, s_error = 11;
+    logic [7:0] slave_address_buffer, mem_address_buffer, data_buffer;
+    logic [3:0] counter;
+    logic start;
+    logic read;
+    //assign slave_address_buffer_m = slave_address_buffer;
+    
+    //for keeping track of start/stop conditions
+    logic oldSCL; 
+    logic oldSDA;
+    
+    logic selected = 0;
+    logic rejected = 0;
+ 
+    assign mem.clk = sl.SCL;
+    
+    logic reset_flag = 1;
+    logic write_flag = 0;
     //Start and Stop conditions
-    always @(negedge sl.SDA) begin
-        if (SCL) begin
-            next_state = s_slave_address;
-        end 
+
+    always @(posedge clk) begin
+        
+        oldSCL <= sl.SCL;
+
     end
-    always @(posedge sl.SDA) begin
-        if (SCL) begin
-            next_state = stop;
+    always @(posedge clk) begin//store previous SDA value
+        oldSDA <= sl.SDA;
+    end
+    //start condition
+    always @(posedge clk) begin // change to clock as condition
+        //slave_address_buffer_m <= {reset_flag, oldSCL, oldSDA, sl.SCL, sl.SDA};
+        if (sl.SCL && oldSCL && (oldSDA == 1 && sl.SDA == 0)) begin //negedge
+                    
+            next_state <= s_slave_address;//try to make all assignments non-blocking
+            reset_flag <= 1;
+        end
+        
+    end
+    //stop condition
+    always @(posedge clk) begin // change to clock as condition
+        if (sl.SCL && oldSCL && (oldSDA == 0 && sl.SDA == 1)) begin //posedge
+            next_state <= s_stop;//try to make all assignments non-blocking
         end 
     end
 
     //next state gen
     always @(*) begin
+        //slave_address_buffer_m <= {reset_flag, oldSCL, oldSDA, sl.SCL, sl.SDA};
         // if (state == s_stop) begin
         //     if (start) begin
         //         next_state == s_slave_address;
         //     end
         // end else 
+        //slave_address_buffer_m <= counter;
+        //slave_address_buffer_m <= sl.SDA;
+        slave_address_buffer_m = state_completed;
         if (state == s_slave_address) begin
             case (counter) 
                 8:
                     begin
-                        state = s_rw;
+                   
+                        next_state <= s_rw;
                     end
             endcase
-        end else if (state == s_rw) begin
-            state = s_acknowledge_selection;
-        end else if (state == s_acknowledge_selection) begin
-            state = s_mem_address;
+        end else if (state == s_rw && state_completed == s_rw) begin
+                next_state <= s_acknowledge_selection;
+        end else if (state == s_acknowledge_selection && state_completed == s_acknowledge_selection) begin
+            if (selected) begin
+                slave_address_buffer_m <= slave_address_buffer;
+                next_state <= s_mem_address;
+            end
+             if (rejected) begin
+                next_state = s_stop;
+            end
         end else if (state == s_mem_address) begin
             case (counter) 
                 8:
                     begin
-                        next_state = s_acknowledge_address;
+                        next_state <= s_acknowledge_address;
                     end
             endcase
-        end else if (state == s_acknowledge_address) begin
-            if (write) begin
-                next_state <= s_write;
-            end else begin
+        end else if (state == s_acknowledge_address && state_completed == s_acknowledge_address) begin
+            if (read) begin
                 next_state <= s_read;
+            end else begin
+                next_state <= s_write;
             end
         end else if (state == s_write) begin
             case (counter) 
                 8:
                     begin
-                        next_state = s_acknowledge;
+                        next_state <= s_w_acknowledge;
                     end
             endcase
-        end else if (state == s_read) begin
+        end else if (state == s_read && state_completed == s_read) begin
             case (counter) 
                 8:
                     begin
-                        next_state = s_acknowledge;
+                        next_state <= s_r_acknowledge;
                     end
             endcase
-        end else if (state == s_acknowledge) begin
-            if (write) begin
-                next_state = s_write;
-            end else begin
-                next_state = s_read;
-            end
+        end else if (state == s_w_acknowledge && state_completed == s_w_acknowledge) begin
+                next_state <= s_write; // could be expanded to allow longer transfers would need apb to have larger data register
+        end else if (state == s_r_acknowledge && state_completed == s_r_acknowledge) begin
+                next_state <= s_read; // could be expanded to allow longer transfers would need apb to have larger data register
         end
     end
 
 
-
+    //need some states to work on negedge, since signals can opnly be set during negedge
     //state updater
-    always @(posedge sl.SCL) begin
+    always @(posedge sl.SCL or negedge sl.SCL) begin
         if (sl.reset) begin
+            state <= s_stop;
             next_state <= s_stop;
+            state_completed <= s_none;
         end else begin
             state = next_state;
         end
     end
-    //state actions
+    //state actions posedge (take data inputs, do not send data)
     always @(posedge sl.SCL) begin
-        if (state == s_stop) begin
+        
+        if (state == s_stop) begin //idle state
             slave_address_buffer <= 0;
             mem_address_buffer <= 0;
             data_buffer <= 0;
             counter <= 0;
-        end else if (state == s_slave_address) begin
-           
-            slave_address_buffer[counter] <= sl.SDA;
-            counter <= counter + 1;
-
-        end else if (state == s_rw) begin
-            write <= sl.SDA;
-            buffer <= 0;
-            counter <= 0;
-
-        end else if (state == s_acknowledge_selection) begin
-            if (slave_address_buffer == id) begin
-                sl.SDA <= 0;//1 if error, 0 if ack
-                counter <= 0;
+            mem.ce <= 1'b0;
+            mem.wren <= 1'b0;
+            mem.rden <= 1'b0;
+            state_completed <= s_stop;
+        end else if (state == s_slave_address) begin //re-start condition working
+            if (reset_flag) begin
+                slave_address_buffer <= 0;
+                mem_address_buffer <= 0;
+                data_buffer <= 0;
+                counter <= 1;
+                mem.ce <= 1'b0;
+                mem.wren <= 1'b0; 
+                mem.rden <= 1'b0;
+                reset_flag <= 0; 
+                selected <= 0;
+                rejected <= 0;
+                slave_address_buffer[7 - counter] <= sl.SDA;    
             end else begin
-                state == s_stop;
-            end
+                counter <= counter + 1;
+                slave_address_buffer[7 - counter] <= sl.SDA;
+                
+            end       
+        end else if (state == s_rw) begin
+            read <= sl.SDA;
+            data_buffer <= 0;
+            counter <= 0;
+            state_completed <= s_rw;
+        end else if (state == s_acknowledge_selection) begin
+            state_completed <= s_acknowledge_selection;
         end else if (state == s_mem_address) begin
-
-            mem_address_buffer[counter] <= sl.SDA;
+            mem_address_buffer[7 - counter] <= sl.SDA;
             counter <= counter + 1;
+        end else if (state == s_acknowledge_address) begin
+            state_completed <= s_acknowledge_address;
+        end else if (state == s_read) begin
+            if (counter == 8) begin
+                state_completed <= s_read;
+            end
+        end else if (state == s_write) begin // will be written to, slave is receiver 
+            data_buffer[7 - counter] = sl.SDA;
+            counter = counter + 1;
+            if (counter == 8) begin
+                mem.addr <= mem_address_buffer;
+                mem.wren <= 1'b1;
+                mem.ce <= 1'b1;
+                write_flag <= 1;
+                mem.wdata <= data_buffer;
+                
+            end else if (write_flag == 0) begin
+                mem.ce = 1'b0;
+                mem.wren <= 1'b0;
+            end
+        end else if (state == s_r_acknowledge) begin
+            if (sl.SDA == 0) begin
+                state_completed <= s_r_acknowledge;
+            end else begin // master does not acknowledge, error occurs, should be handled by the master, no need to pass signal
+                state <= s_stop;
+                next_state <= s_stop;
+                state_completed <= s_none;
+            end
+            
+        end else if (state == s_w_acknowledge) begin
+            state_completed <= s_w_acknowledge;
+        end
 
+    end
+    
+    //state actions negedge (send data, do not take data inputs)
+    
+    always @(negedge sl.SCL) begin
+        if (state == s_acknowledge_selection) begin
+            if (slave_address_buffer == id) begin
+                
+                sl.SDA <= 0;//1 if error, 0 if ack
+                
+                counter <= 0;
+                selected <= 1;
+                rejected <= 0;
+            end else begin
+                selected <= 0;
+                rejected <= 1;
+                state <= s_stop;
+                next_state <= s_stop;
+                state_completed <= s_none;
+            end
+            
         end else if (state == s_acknowledge_address) begin
             //first set up memory buffers as necessary, blocking
-            if (write == 1'b0) begin
-                mem.addr = mem_address_buffer;
-                mem.rden = 1'b1;
-                mem.ce = 1'b1;
-                data_buffer = mem.rdata;
+            if (read == 1'b1) begin
+                
+                mem.addr <= mem_address_buffer;
+                mem.rden <= 1'b1;
+                mem.ce <= 1'b1;
+                
+                //data_buffer = mem.rdata;
             end 
             //todo: check if mem address is valid
             sl.SDA <= 0;//1 if error, 0 if ack
             counter <= 0;
 
-        end else if (state == read) begin // will be read from, slave is transmitter
+        end else if (state == s_read) begin // will be read from, slave is transmitter
             //at least one clock pulse whould have passed since s_acknowledge_addresss, so data_buffer should be updated
-            mem.ce = 1'b0;
-            sl.SDA = data_buffer[counter];
+            data_buffer <= mem.rdata;
+            
+            //mem.ce = 1'b0;
+            sl.SDA <= data_buffer[7 - counter];
             counter <= counter + 1;
 
-
-        end else if (state == write) begin // will be written to, slave is receiver
-
-            data_buffer[counter] <= sl.SDA;
-            counter <= counter + 1;
-            if (counter == 8) begin
-                mem.addr <= mem_address_buffer;
-                mem.wren <= 1'b1;
-                mem.ce <= 1'b1;
-                mem.wdata <= data_buffer;
-            end
 
         end else if (state == s_r_acknowledge) begin
-            sl.SDA <= 0;//1 if error, 0 if ack
-            data_buffer <= 0;
-            counter <= 0;
-
-        end else if (state == s_w_acknowledge) begin
-            //at least one clock pulse whould have passed since s_write, so data_buffer should be stored into memory by now
-            sl.SDA <= 0;//1 if error, 0 if ack
+            //should be done by master
+            //so we write SDA high amd make sure the master sets it low on posedge
+            //in order to make sure that timing works out, since both master and lsave would set
+            //SDA on negedge, slave's SDA set needs to be blocking to ensure it happens first
+            sl.SDA = 1;//1 if error, 0 if ack
             data_buffer <= 0;
             counter <= 0;
             mem.ce <= 1'b0;
-
+            mem.rden <= 1'b0;
+           
+        end else if (state == s_w_acknowledge) begin
+            //data_buffer should be stored into memory by now
+            sl.SDA <= 0;//1 if error, 0 if ack
+            data_buffer <= 0;
+            counter <= 0;
+            write_flag <= 0;
+            
         end
-
     end
-    
-
 
 
 endmodule
 
-module I2C_Master(I2C.master ms, input clk);
 
-    always @(posedge clk) begin// make scl 1/2 speed of system clock
-        ms.SCL = clk;
-    end
-    //next state gen
-    always @() begin
-        
-    end
-
-    //states
-    always @(posedge ms.SCL) begin
-        
-
-    end
-
-    task start;
-        ms.SCL = 1'b1;
-        ms.SDA = 1'b1;
-        ms.SDA = 1'b0;
-    endtask
-
-    task stop;
-        ms.SCL = 1'b1;
-        ms.SDA = 1'b0;
-        ms.SDA = 1'b1;
-    endtask
-
-
-endmodule
 
 
