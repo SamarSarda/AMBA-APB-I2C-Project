@@ -21,7 +21,7 @@
 
 
 
-module sv_testbench2(
+modu le sv_testbench2(
        
     );
     
@@ -29,10 +29,13 @@ module sv_testbench2(
     reg write;
     reg sel;
     reg enable;
+    reg reset;
     wire rdy, wren, rden;
-    APB intf(.clk(clk));
+    APB intf(.clk(clk), .reset(reset)); 
     Memory_Bus intf2();
     APB_Slave dut(intf.slave, intf2.slave);
+    Processor_Bus intf3(intf.slave, intf2.slave);
+    APB_Master dut2(intf.master,intf3.master);
     assign write = intf.write;
     assign enable = intf.enable;
     assign sel = intf.sel;

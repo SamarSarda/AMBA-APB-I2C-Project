@@ -20,16 +20,21 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 interface APB (input logic clk, input logic reset);
-    logic write, ready, enable;
+    logic write, ready, enable, reset;
     logic [7:0] wdata, rdata, addr, wait_cycles;
     logic [1:0] sel;
-
+    task reset_slave; 
+    @ (negedge clk);
+    reset = 1'b1;
+    @ (negedge clk); 
+    reset =1'b0;
+    endtask
     modport master (input clk, ready, rdata, output write, sel, wdata, enable, wait_cycles, addr);
     modport slave (input clk, write, sel, wdata, enable, reset, wait_cycles, addr, output ready, rdata);
 endinterface
 
 interface Memory_Bus();
-    logic wren, rden, clk;
+    logic wren, rden, clk, ce;
     logic [7:0] wdata, rdata, addr;
 
     modport slave (input rdata, output wdata, wren, rden, clk, addr, ce);
@@ -42,7 +47,7 @@ interface Processor_Bus(input logic clk, input logic reset); // not sure if proc
     logic [1:0] sel;
 
     modport processor (input clk, rdata, ready, output write, sel, addr, wdata, start, wait_cycles);
-    modport master (input clk, write, sel, reset, addr, wdata, start, wait_cycles, output, rdata, ready);
+    modport master (input clk, write, sel, reset, addr, wdata, start, wait_cycles, output rdata, ready);
 endinterface
 
 module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id); // fix next state logic
@@ -53,7 +58,7 @@ module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id); // fix nex
     assign msl.clk = sl.clk;
     assign msl.addr = sl.addr;
     assign msl.wdata = sl.wdata;
-    assign msl.rdata = sl.rdata;
+    assign sl.rdata = msl.rdata;
 
     //States
     always @(negedge sl.clk) begin
@@ -149,8 +154,8 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
     logic [2:0] next_state;
     parameter s_idle = 0, s_setup = 1, s_access = 2;
     assign ms.clk = pm.clk;
-    
-
+    assign pm.ready = ms.ready;
+    assign pm.rdata = ms.rdata;
     //States
     always @(*) begin
         if (state == s_idle) begin
@@ -179,7 +184,7 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
                                 begin
                                     next_state = s_setup;
                                 end
-                         endcase 
+                          endcase
                     end
               endcase
         end
@@ -197,18 +202,19 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
     always @(posedge pm.clk) begin 
         if (state == s_idle) begin
             ms.sel <= 2'b00;
-            pm.enable <= 1'b0;
+            ms.enable <= 1'b0;
         end else if (state == s_setup) begin
             //should be only place where address, wdata and wait cycles are changed, 
             //by arm documentation, not changing addr or wdata unless there is a new transfer saves power
             ms.sel <= pm.sel; // assume that pm will always give valid id, but consider throwing errors
-            pm.enable <= 1'b0;
+            ms.enable <= 1'b0;
             ms.addr <= pm.addr;
             ms.wdata <= pm.wdata;
-            ms.wait_cyces = pm.wait_cycles;
+            ms.wait_cycles = pm.wait_cycles;
         end else if (state == s_access) begin
             ms.sel <= pm.sel; // assume that pm will always give valid id, but consider throwing errors
-            pm.enable <= 1'b1;
+            ms.enable <= 1'b1;
+            
         end
         
     end

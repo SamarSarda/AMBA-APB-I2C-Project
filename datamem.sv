@@ -10,9 +10,14 @@ module datamem (
 
 reg [7:0] register [255:0];
 
-always@(posedge clk) 
+always@(clk && mem_write,clk && mem_read) 
 begin
-	if(mem_write) register[write_addr] = write_data;
-	if(mem_read) read_data = register[read_addr];
+	if(mem_write) begin 
+	   register[write_addr] = write_data;
+	end
+	if(mem_read) begin 
+	   read_data = register[read_addr];
+    end
 end
+
 endmodule 

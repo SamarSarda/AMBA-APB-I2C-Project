@@ -18,7 +18,7 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
+/*
 interface I2C ();
     logic SDA, SCL, reset;
     
@@ -61,12 +61,12 @@ module I2C_Slave(I2C.slave sl, Memory_Bus.slave mem, logic [7:0] id);
 
     //Start and Stop conditions
     always @(negedge sl.SDA) begin
-        if (SCL) begin
+        if (sl.SCL) begin
             next_state = s_slave_address;
         end 
     end
     always @(posedge sl.SDA) begin
-        if (SCL) begin
+        if (sl.SCL) begin
             next_state = stop;
         end 
     end
@@ -245,5 +245,5 @@ module I2C_Master(I2C.master ms, input clk);
 
 
 endmodule
-
+*/
 

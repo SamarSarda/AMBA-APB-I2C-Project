@@ -1,8 +1,9 @@
-module bit_cpu(input clk,input clk2);
+
+module bit_cpu(input clk,input clk2, input ready, output apb_write, output apb_addr, inout apb_data,output apb_device);
 
 wire [7:0] addr;
 wire [2:0] func;
-wire [15:0] inst;
+wire [23:0] inst;
 wire [7:0] imm;
 wire [3:0] opcode;
 
@@ -27,8 +28,10 @@ wire mem_read;
 wire mem_write;
 wire mem_to_reg;
 wire [7:0] mem_out;
+wire continue_flag;
+wire apb_op;
 
-reg [7:0] pc_current;
+reg [7:0] pc_current; // was reg 
 wire [2:0] rd_or_rb_addr;
 
  initial 
@@ -45,19 +48,27 @@ decoder decoder(.inst(inst),
 		.imm(imm),
 		.opcode(opcode),
 		.func(func),
-		.addr(addr)
+		.addr(addr),
+		.apb_addr(apb_addr),
+		.apb_data(apb_data),
+		.apb_device(apb_device)
 		);
 
 
 control_unit  control(
 		 .opcode(opcode),
 		 .func(func),
+		 .ready(ready),
 		 .reg_dst(reg_dst),
 		 .reg_write(reg_write),
 		 .alusrc(alusrc),
 		 .alufn(alufn),
+		 .apb_op(apb_op),
 		 .mem_write(mem_write),
 		 .mem_read(mem_read),
+		 .apb_write(apb_write),
+		 .mem_to_reg(mem_to_reg),
+		 .continue_flag(continue_flag),
 		 .nia(nia)
 		 );
 
@@ -75,7 +86,9 @@ regfile  regfile(
 		.reg2_read_addr(rb_addr),
 		.reg2_read_data(rb),
 		.reg_write_addr(rd_or_rb_addr),
+	    .apb_op(apb_op),
 		.reg_write_data(rd),
+		.apb_data(apb_data),
 		.reg_write_en(reg_write)
 		);
 
@@ -90,6 +103,7 @@ alu  alu (
 	.alufn(alufn),
 	.ra(ra),
 	.rb_or_imm(rb_or_imm),
+	.apb_op(apb_op),
 	.aluout(aluout),
 	.br(br)
 	);
@@ -112,13 +126,16 @@ mux2to1 mux2to11(
 
 always @(posedge clk2) 
 begin
-	#5
-    if(nia == 1'b0)
-        pc_current = pc_current + addr;
-    else if (br == 1'b1)
-        pc_current = pc_current + imm;
-    else 
-        pc_current = pc_current + 8'd1;
+    if(continue_flag == 1'b1) begin
+    //check flag
+        #5
+        if(nia == 1'b0)
+            pc_current = pc_current + addr;
+        else if (br == 1'b1)
+            pc_current = pc_current + imm;
+        else 
+            pc_current = pc_current + 8'd1;
+    end
 end
 
 always@(posedge clk2) 

@@ -2,6 +2,7 @@ module alu(
 	input [2:0] alufn,
 	input [7:0] ra,
 	input [7:0] rb_or_imm,
+	input apb_op,
 	output reg [7:0] aluout,
 	output reg br);
 
@@ -16,18 +17,23 @@ parameter	ALU_OP_ADD	= 3'b000,
 
 always @(*) 
 begin
-	case(alufn)
-			ALU_OP_ADD 	: aluout = ra + rb_or_imm;
-			ALU_OP_SUB 	: aluout = ra - rb_or_imm;
-			ALU_OP_AND 	: aluout = ra & rb_or_imm;
-			ALU_OP_OR	: aluout = ra | rb_or_imm;
-			ALU_OP_ADDI	: aluout = ra + rb_or_imm;
-			ALU_OP_LW	: aluout = ra + rb_or_imm;
-			ALU_OP_SW	: aluout = ra + rb_or_imm;
-			ALU_OP_BEQ	: begin
-							br = (ra==rb_or_imm)?1'b1:1'b0; 
-						  end
-	endcase
+    if(apb_op == 1'b1) begin
+        
+    end
+    else begin
+        case(alufn)
+                ALU_OP_ADD 	: aluout = ra + rb_or_imm;
+                ALU_OP_SUB 	: aluout = ra - rb_or_imm;
+                ALU_OP_AND 	: aluout = ra & rb_or_imm;
+                ALU_OP_OR	: aluout = ra | rb_or_imm;
+                ALU_OP_ADDI	: aluout = ra + rb_or_imm;
+                ALU_OP_LW	: aluout = ra + rb_or_imm;
+                ALU_OP_SW	: aluout = ra + rb_or_imm;
+                ALU_OP_BEQ	: begin
+                                br = (ra==rb_or_imm)?1'b1:1'b0; 
+                              end
+        endcase
+	end
 end
 
 endmodule
