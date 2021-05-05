@@ -28,10 +28,19 @@ output reg [7:0] rd_data;
 
 reg [7:0] mem [0:255];//should initialize with values for testing purposes
 
-// initial
-// begin
-//     mem[1] <= 5;//for testing purposes
-// end
+integer i;
+task initiate();
+    
+    for (i = 0; i < 256; i = i + 1) begin
+        mem[i] = i;
+        $display ("%d", i);
+    end
+endtask
+
+//initial
+//begin
+//    mem[1] <= 5;//for testing purposes
+//end
 always @ (posedge clk) 
 if (ce) 
 begin

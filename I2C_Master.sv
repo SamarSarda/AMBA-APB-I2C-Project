@@ -23,8 +23,8 @@
 
 
  //change all if/else to case
-module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] state, output logic [7:0] test);
-    
+module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signals test);
+    logic [4:0] state;
     logic [4:0] next_state, state_completed;
     parameter s_stop = 0, s_slave_address = 1, s_rw = 2, 
     s_acknowledge_selection = 3, s_mem_address = 4, s_acknowledge_address = 5, 
@@ -35,6 +35,11 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
     logic [2:0] clk_pulse_counter;
     logic [1:0] x2clk_pulse_counter;
     logic reset_flag;
+    
+    logic ack = 0;    //flag to make sure that sda is tied low for acknowledge
+    
+    assign test.master_state = state;
+    assign test.master_data = data;
     
     
     always @(posedge clk) begin// make scl 1/8 speed of system clock
@@ -47,20 +52,18 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
         
     end
     
-    //start and stop condidions
-//    always @(posedge clk) begin
-//        if (state == s_start) begin
-//            next_state = s_start;
-        
-//        end else if (state == s_stop) begin
-//            next_state = s_stop;
-        
-//        end 
-//    end
+    //combinational logic
+    //acknowledge bit tying low
+    always@(*) begin
+        if (ack == 0) begin
+            if (state == s_r_acknowledge) begin
+                ms.SDA <= 0;
+            end
+        end
+    end
 
     //next state gen
     always @(*) begin // need to add state_completed code
-         test = data;
          if (apb.ce == 0 && state !== 5'bxxxxx && (state != s_idle && state != s_stop)) begin//could have errors on initialization
             next_state = s_error;
          end else if (state == s_stop && state_completed == s_stop) begin
@@ -255,11 +258,19 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
             counter <= 0;
             //apb timing needs to line up here for write ops
         end
+        
+        ack <= 1; // making sure acknowledge only affects data at proper time
     end
     //state actions on negedge SCL
     //write to SDA on negedge
     always @ (negedge ms.SCL) begin
-        if (state == s_slave_address) begin
+     if (state == s_acknowledge_selection) begin
+            ms.SDA = 1; $display ("1"); //release clock to be high, wait for acknowledge, needs to be blocking so occurs before slave acknowledge
+            
+            counter <= 0;
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
+        end else if (state == s_slave_address) begin
             x2clk_pulse_counter = 0;
             if (reset_flag) begin
                 slave_address <= apb.addr[7:6];
@@ -276,6 +287,8 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
                 ms.SDA <= slave_address[7 - counter];
                 counter <= counter + 1;
             end
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
         end else if (state == s_rw) begin
             ms.SDA <= apb.rden;
             if (apb.wren) begin
@@ -284,24 +297,28 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
                 data <= 0;
             end
             counter <= 0;
-        end else if (state == s_acknowledge_selection) begin
-            ms.SDA = 1; //release clock to be high, wait for acknowledge, needs to be blocking so occurs before slave acknowledge
-            counter <= 0;
-        end else if (state == s_mem_address) begin
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
+        end  else if (state == s_mem_address) begin
             ms.SDA = mem_address[7 - counter];
             counter <= counter + 1;
-
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
         end else if (state == s_acknowledge_address) begin
             ms.SDA = 1; //release clock to be high, wait for acknowledge, needs to be blocking so occurs before slave acknowledge
             counter <= 0;
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
         end else if (state == s_write) begin // will be written to, slave is receiver
             ms.SDA <= data[7 - counter];
             counter <= counter + 1;
 
+            ack <= 1; // making sure acknowledge only affects data at proper time
         end else if (state == s_r_acknowledge) begin
             if (data[0] !== 1'bx && data[1] !== 1'bx && data[2] !== 1'bx && data[3] !== 1'bx
             && data[4] !== 1'bx && data[5] !== 1'bx && data[6] !== 1'bx && data[7] !== 1'bx) begin
                 ms.SDA <= 0;//1 if error, 0 if ack
+                ack <= 0;//1 if error, 0 if ack
                 apb.rdata <= data;
                 //apb timing needs to line up here for read ops
             end else begin//error occurrs, probably do not want a ready signal being sent
@@ -309,12 +326,16 @@ module I2C_Master(I2C.master ms, APB_I2C_Bus apb, input clk, output logic [4:0] 
                 state <= s_error;
                 next_state <= s_error;
                 state_completed <= s_none;
+                
+                ack <= 1; // making sure acknowledge only affects data at proper time
             end
             counter <= 0;
             //apb timing needs to line up here for end of read ops
         end else if (state == s_w_acknowledge) begin
             ms.SDA = 1; //release clock to be high, wait for acknowledge, needs to be blocking so occurs before slave acknowledge
             counter <= 0;
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
         end
     end
 

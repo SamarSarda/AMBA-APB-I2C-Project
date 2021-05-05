@@ -20,13 +20,20 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, output logic [3:0] state, output logic [7:0] slave_address_buffer_m, input logic clk);//change id to 4bits
+module I2C_Slave(I2C_Bus.slave sl, 
+ I2C_Memory_Bus.slave mem, 
+ input logic [7:0] id,
+ input logic clk,
+ I2C_test_signals test);//id can be 2 bits
+ 
+    logic [3:0] state;
     logic [3:0] next_state, state_completed;
     parameter s_stop = 0, s_slave_address = 1, s_rw = 2, 
     s_acknowledge_selection = 3, s_mem_address = 4, s_acknowledge_address = 5, 
     s_read = 6, s_write = 7, s_r_acknowledge = 8, s_w_acknowledge = 9, s_none = 10, s_error = 11;
     logic [7:0] slave_address_buffer, mem_address_buffer, data_buffer;
     logic [3:0] counter;
+    
     logic start;
     logic read;
     //assign slave_address_buffer_m = slave_address_buffer;
@@ -42,16 +49,23 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
     
     logic reset_flag = 1;
     logic write_flag = 0;
+    logic ack = 0;    //flag to make sure that sda is tied low for acknowledge
+    
+    //test output signals
+    assign test.slave_state = state;
+    assign test.slave_data = data_buffer;
+    assign test.slave_select = slave_address_buffer;
+    assign test.slave_mem_address = mem_address_buffer;
+    
+    
     //Start and Stop conditions
-
-    always @(posedge clk) begin
-        
+    always @(posedge clk) begin 
         oldSCL <= sl.SCL;
-
     end
     always @(posedge clk) begin//store previous SDA value
         oldSDA <= sl.SDA;
     end
+    
     //start condition
     always @(posedge clk) begin // change to clock as condition
         //slave_address_buffer_m <= {reset_flag, oldSCL, oldSDA, sl.SCL, sl.SDA};
@@ -68,7 +82,17 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
             next_state <= s_stop;//try to make all assignments non-blocking
         end 
     end
-
+    
+    //combinational logic
+    //acknowledge bit tying low
+    always@(*) begin
+        if (ack == 0) begin
+            if (state == s_acknowledge_selection || state == s_acknowledge_address || state == s_w_acknowledge) begin
+                sl.SDA <= 0;
+            end
+        end
+    end
+    
     //next state gen
     always @(*) begin
         //slave_address_buffer_m <= {reset_flag, oldSCL, oldSDA, sl.SCL, sl.SDA};
@@ -79,7 +103,7 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
         // end else 
         //slave_address_buffer_m <= counter;
         //slave_address_buffer_m <= sl.SDA;
-        slave_address_buffer_m = state_completed;
+        //slave_address_buffer_m = state_completed;
         if (state == s_slave_address) begin
             case (counter) 
                 8:
@@ -92,7 +116,7 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
                 next_state <= s_acknowledge_selection;
         end else if (state == s_acknowledge_selection && state_completed == s_acknowledge_selection) begin
             if (selected) begin
-                slave_address_buffer_m <= slave_address_buffer;
+                //slave_address_buffer_m <= slave_address_buffer;
                 next_state <= s_mem_address;
             end
              if (rejected) begin
@@ -216,7 +240,9 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
         end else if (state == s_w_acknowledge) begin
             state_completed <= s_w_acknowledge;
         end
-
+        
+        ack <= 1; // making sure acknowledge only affects data at proper time
+        
     end
     
     //state actions negedge (send data, do not take data inputs)
@@ -226,11 +252,12 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
             if (slave_address_buffer == id) begin
                 
                 sl.SDA <= 0;//1 if error, 0 if ack
-                
+                ack <= 0;//1 if error, 0 if ack
                 counter <= 0;
                 selected <= 1;
                 rejected <= 0;
             end else begin
+                ack <= 1;//1 if error, 0 if ack
                 selected <= 0;
                 rejected <= 1;
                 state <= s_stop;
@@ -248,8 +275,10 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
                 
                 //data_buffer = mem.rdata;
             end 
+            
             //todo: check if mem address is valid
             sl.SDA <= 0;//1 if error, 0 if ack
+            ack = 0;//1 if error, 0 if ack
             counter <= 0;
 
         end else if (state == s_read) begin // will be read from, slave is transmitter
@@ -259,6 +288,7 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
             //mem.ce = 1'b0;
             sl.SDA <= data_buffer[7 - counter];
             counter <= counter + 1;
+            ack <= 1; // making sure acknowledge only affects data at proper time
 
 
         end else if (state == s_r_acknowledge) begin
@@ -271,10 +301,13 @@ module I2C_Slave(I2C.slave sl, I2C_Memory_Bus.slave mem, input logic [7:0] id, o
             counter <= 0;
             mem.ce <= 1'b0;
             mem.rden <= 1'b0;
+            
+            ack <= 1; // making sure acknowledge only affects data at proper time
            
         end else if (state == s_w_acknowledge) begin
             //data_buffer should be stored into memory by now
             sl.SDA <= 0;//1 if error, 0 if ack
+            ack <= 0;//1 if error, 0 if ack
             data_buffer <= 0;
             counter <= 0;
             write_flag <= 0;

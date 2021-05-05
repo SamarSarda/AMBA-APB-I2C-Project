@@ -22,7 +22,7 @@
 
 //make test modport to make valuable signals visible e.g. state, buffers, id
 //chanege all if/else to case
-interface I2C ();
+interface I2C_Bus ();
     logic SDA, SCL, reset;
     
     task reset_slave;
@@ -60,8 +60,26 @@ interface APB_I2C_Bus();
     modport master (output rdata, addr, error, input wdata, wren, rden, clk, ce);
 endinterface
 
+interface I2C_test_signals();
+    logic [4:0] master_state, slave_state;
+    logic [7:0] master_data, slave_data, slave_select, slave_mem_address;
 
-module I2C ();
+endinterface
+
+module I2C (I2C_Bus i2c_bus, I2C_Memory_Bus mem, APB_I2C_Bus apb, input logic [7:0] id, input logic clk, I2C_test_signals test);
+
+    I2C_Slave slave(i2c_bus.slave, 
+        mem.slave, 
+        id,
+        clk,
+        test);
+        
+    I2C_Master master(i2c_bus.master,
+        apb, 
+        clk, 
+        test);
+
+    
 
 endmodule
 

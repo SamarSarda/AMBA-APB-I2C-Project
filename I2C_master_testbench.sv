@@ -28,27 +28,27 @@ module I2C_master_testbench();
     logic SCL;
     logic SDA;
     logic reset;
-    logic [4:0] state;
-    logic [7:0] test;
-    logic [7:0] final_data;
+    logic [4:0] master_state;
+    logic [7:0] master_data;
     
     //apb-master signals
     logic wren, rden, clk, ce, error;
     logic [7:0] wdata, rdata, addr;
     
     //interfaces
-    I2C I2C();
+    I2C_Bus I2C_Bus();
+    I2C_test_signals test();
     APB_I2C_Bus apb();
     
     //modules
 //    memory mem(.clk(I2C_Memory_Bus_i.clk), .ce(I2C_Memory_Bus_i.ce), .rden(I2C_Memory_Bus_i.rden), 
 //        .wren(I2C_Memory_Bus_i.wren), .wr_data(I2C_Memory_Bus_i.wdata), .rd_data(I2C_Memory_Bus_i.rdata), .addr(I2C_Memory_Bus_i.addr));
-    I2C_Master dut(I2C.master, apb.master, clk8x, state, test);
+    I2C_Master dut(I2C_Bus.master, apb.master, clk8x, test);
     
     //control vars linkage to interfaces
-    assign SCL = I2C.SCL;
-    assign SDA = I2C.SDA;
-    assign I2C.reset = reset;
+    assign SCL = I2C_Bus.SCL;
+    assign SDA = I2C_Bus.SDA;
+    assign I2C_Bus.reset = reset;
     
     assign apb.wren = wren;
     assign apb.rden = rden;
@@ -58,6 +58,9 @@ module I2C_master_testbench();
     assign apb.rdata = rdata;
     assign apb.addr = addr;
     assign apb.error = error;
+    
+    assign master_state = test.master_state;
+    assign master_data = test.master_data;
     
     
     initial
@@ -96,7 +99,7 @@ module I2C_master_testbench();
         
         @(posedge clk);//read
         //1
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//slave acknowledge selection
+        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//slave acknowledge selection
         
         @(posedge clk);//memory address
         //0
@@ -114,21 +117,20 @@ module I2C_master_testbench();
         //0
         @(posedge clk);
         //1
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from slave
+        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//acknowledge from slave
         
         @(posedge clk);//data read
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
+        @(negedge clk); I2C_Bus.SDA <= 1; @(posedge clk);
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
+        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);
+        @(negedge clk); I2C_Bus.SDA <= 1; @(posedge clk);
         
-        @(negedge clk); I2C.SDA = 1; @(posedge clk);//acknowledge from master
+        @(negedge clk); I2C_Bus.SDA = 1; @(posedge clk);//acknowledge from master
         
-        final_data <= apb.rdata;
         
         //stop happens between here
         
@@ -174,7 +176,7 @@ module I2C_master_testbench();
         //1
         @(posedge clk);//write
         //0
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//slave acknowledge selection
+        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//slave acknowledge selection
         
         @(posedge clk);//memory address
         //0
@@ -193,11 +195,11 @@ module I2C_master_testbench();
         @(posedge clk);
         //1
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from slave
+        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//acknowledge from slave
         
         @(posedge clk);//data write
         //0
-        @(negedge clk); I2C.SDA <= 1; @(posedge clk);
+        @(negedge clk); I2C_Bus.SDA <= 1; @(posedge clk);
         //1
         @(posedge clk);
         //1
@@ -212,7 +214,7 @@ module I2C_master_testbench();
         @(posedge clk);
         //1
         
-        @(negedge clk); I2C.SDA <= 0; @(posedge clk);//acknowledge from slave
+        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//acknowledge from slave
         
         //reseting ce so that master stays idle
         @(negedge clk);
