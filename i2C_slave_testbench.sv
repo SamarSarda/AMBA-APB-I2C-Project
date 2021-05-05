@@ -54,7 +54,7 @@ module I2C_slave_testbench();
     initial 
     begin
     id <= 1;
-    
+    mem.initiate();
     end
     initial
     begin
