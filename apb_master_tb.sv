@@ -36,20 +36,21 @@ module apb_master_tb();
     logic [7:0] a_wdata, a_rdata, a_addr;
     logic [1:0] a_sel;
     
-    APB_Bus APB_i(clk);
+    APB_Bus APB_1(clk);
+    APB_Bus APB_2(clk);
 
     Processor_Bus Processor_bus_i(clk, reset);
-    //APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave));
-    APB_Master dut(APB_i.master, Processor_bus_i.master);
+    //APB_Slave dut(.sl(APB_1.slave), .msl(Memory_Bus_i.slave));
+    APB_Master dut(APB_1.master, APB_2.master, Processor_bus_i.master);
     
-    assign APB_i.ready = a_ready;
-    assign enable = APB_i.enable;
-    assign a_write = APB_i.write;
-    assign a_reset = APB_i.reset;
-    assign a_wdata = APB_i.wdata;
-    assign a_addr = APB_i.addr;
-    assign a_sel = APB_i.sel;
-    assign APB_i.rdata = a_rdata;
+    assign APB_1.ready = a_ready;
+    assign enable = APB_1.enable;
+    assign a_write = APB_1.write;
+    assign a_reset = APB_1.reset;
+    assign a_wdata = APB_1.wdata;
+    assign a_addr = APB_1.addr;
+    assign a_sel = APB_1.sel;
+    assign APB_1.rdata = a_rdata;
     
     
     assign Processor_bus_i.write = p_write;
@@ -102,7 +103,7 @@ module apb_master_tb();
         p_sel = 0;
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 5;
+        //APB_1.wait_cycles = 5;
         @(posedge clk);
         p_write = 1;
         p_sel = 1;
@@ -123,7 +124,7 @@ module apb_master_tb();
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 5;
+        //APB_1.wait_cycles = 5;
         @(posedge clk);
         p_write = 0;
         p_sel = 1;
@@ -144,7 +145,7 @@ module apb_master_tb();
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 1;
+        //APB_1.wait_cycles = 1;
         @(posedge clk);
         p_write = 1;
         p_sel = 1;
@@ -161,7 +162,7 @@ module apb_master_tb();
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 1;
+        //APB_1.wait_cycles = 1;
         @(posedge clk);
         p_write = 0;
         p_sel = 1;
