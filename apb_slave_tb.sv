@@ -40,16 +40,19 @@ module apb_slave_tb();
     memory mem(.clk(Memory_Bus_i.clk), .ce(Memory_Bus_i.ce), .rden(Memory_Bus_i.rden), 
         .wren(Memory_Bus_i.wren), .wr_data(APB_i.wdata), .rd_data(Memory_Bus_i.rdata), .addr(APB_i.addr));
     
+    //apb
     assign APB_i.write = write;
     assign APB_i.sel = sel;
     assign APB_i.enable = enable;
-    assign ready = APB_i.ready;
+    assign APB_i.wdata = wdata;
+    assign APB_i.addr = addr;
+    
+    //memory
+    assign ready = Memory_Bus_i.ready;
     assign wren = Memory_Bus_i.wren;
     assign rden = Memory_Bus_i.rden;
     assign ce = Memory_Bus_i.ce;
     assign rdata = Memory_Bus_i.rdata;
-    assign APB_i.wdata = wdata;
-    assign APB_i.addr = addr;
     
     initial 
     begin
@@ -60,7 +63,7 @@ module apb_slave_tb();
     initial
     begin
         clk = 0;
-        APB_i.wait_cycles = 0;
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);   //write transfer
@@ -86,12 +89,13 @@ module apb_slave_tb();
         sel = 0;
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        APB_i.wait_cycles = 5;
+        //APB_i.wait_cycles = 5;
         @(posedge clk);
         write = 1;
         sel = 1;
         wdata = 4;
         addr= 5;
+        Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
@@ -99,16 +103,18 @@ module apb_slave_tb();
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        APB_i.wait_cycles = 5;
+        //APB_i.wait_cycles = 5;
         @(posedge clk);
         write = 0;
         sel = 1;
         addr= 5;
+        Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
@@ -116,64 +122,73 @@ module apb_slave_tb();
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        APB_i.wait_cycles = 1;
+        //APB_i.wait_cycles = 1;
         @(posedge clk);
         write = 1;
         sel = 1;
         wdata = 3;
         addr= 4;
+        Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        APB_i.wait_cycles = 1;
+        //APB_i.wait_cycles = 1;
         @(posedge clk);
         write = 0;
         sel = 1;
         addr= 4;
+        Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        APB_i.wait_cycles = 3;
+        //APB_i.wait_cycles = 3;
         @(posedge clk);
         write = 1;
         sel = 1;
         wdata = 2;
         addr= 3;
+        Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        APB_i.wait_cycles = 3;
+        //APB_i.wait_cycles = 3;
         @(posedge clk);
         write = 0;
         sel = 1;
         addr= 3;
+        Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
+        Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  

@@ -25,9 +25,11 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm);
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_setup = 1, s_access = 2;
+    logic after_ready;
+    
     assign ms.clk = pm.clk;
-    assign pm.ready = ms.ready;
-    assign pm.rdata = ms.rdata;
+    //assign pm.ready = ms.ready;
+    //assign pm.rdata = ms.rdata;
     //States
     always @(*) begin
         if (state == s_idle) begin
@@ -64,9 +66,11 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm);
 
     always @(posedge pm.clk) begin
         if (pm.reset) begin
-            state <= s_idle;
+            state = s_idle;
+            next_state = s_idle;
+            after_ready = 0;
         end else begin
-            state <= next_state;
+            state = next_state;
         end
     end
 
@@ -75,18 +79,29 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm);
         if (state == s_idle) begin
             ms.sel <= 2'b00;
             ms.enable <= 1'b0;
+            pm.rdata <= ms.rdata;
+            if (after_ready) begin
+                pm.stable <= 1'b1;
+                after_ready <= 0;
+            end
         end else if (state == s_setup) begin
             //should be only place where address, wdata and wait cycles are changed, 
             //by arm documentation, not changing addr or wdata unless there is a new transfer saves power
             ms.sel <= pm.sel; // assume that pm will always give valid id, but consider throwing errors
             ms.enable <= 1'b0;
+            ms.write <= pm.write;
             ms.addr <= pm.addr;
             ms.wdata <= pm.wdata;
-            ms.wait_cycles = pm.wait_cycles;
+            pm.rdata <= ms.rdata;
+            if (after_ready) begin
+                pm.stable <= 1'b1;
+                after_ready <= 0;
+            end
         end else if (state == s_access) begin
             ms.sel <= pm.sel; // assume that pm will always give valid id, but consider throwing errors
             ms.enable <= 1'b1;
-            
+            pm.stable <= 1'b0;
+            after_ready <= 1;
         end
         
     end

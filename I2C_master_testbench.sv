@@ -30,6 +30,7 @@ module I2C_master_testbench();
     logic reset;
     logic [4:0] master_state;
     logic [7:0] master_data;
+
     
     //apb-master signals
     logic wren, rden, clk, ce, error;

@@ -53,11 +53,11 @@ interface I2C_Memory_Bus();
 endinterface 
 
 interface APB_I2C_Bus();
-    logic wren, rden, clk, ce, error;
+    logic wren, rden, clk, ce, error, ready;
     logic [7:0] wdata, rdata, addr;
 
-    modport APB (input rdata, error, output wdata, wren, rden, clk, addr, ce);
-    modport master (output rdata, addr, error, input wdata, wren, rden, clk, ce);
+    modport APB (input rdata, error, output wdata, wren, rden, clk, addr, ce, inout ready);
+    modport master (output rdata, addr, error, input wdata, wren, rden, clk, ce, inout ready);
 endinterface
 
 interface I2C_test_signals();
