@@ -48,8 +48,8 @@ interface I2C_Memory_Bus();
 
     endtask
 
-    modport slave (input rdata, output wdata, wren, rden, clk, addr, ce);
-    modport mem (output rdata, addr, input wdata, wren, rden, clk, ce);
+    modport slave (input rdata, addr, output wdata, wren, rden, clk,  ce);
+    modport mem (output rdata, input wdata, wren, rden, clk, ce, addr);
 endinterface 
 
 interface APB_I2C_Bus();

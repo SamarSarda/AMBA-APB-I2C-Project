@@ -37,8 +37,8 @@ interface Memory_Bus();
     logic wren, rden, clk, ce;
     logic [7:0] wdata, rdata, addr;
 
-    modport slave (input rdata, output wdata, wren, rden, clk, addr, ce);
-    modport mem (output rdata, addr, ce, input wdata, wren, rden, clk);
+    modport slave (input rdata, addr, output wdata, wren, rden, clk, ce);
+    modport mem (output rdata,  input wdata, wren, rden, clk, ce, addr);
 endinterface 
 
 interface Processor_Bus(input logic clk, input logic reset); // not sure if processor should determine wait cycles, but it seems logical to pass that functionality to the processor as opposed to a general purpose bus
