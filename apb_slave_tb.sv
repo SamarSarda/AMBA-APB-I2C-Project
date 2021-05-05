@@ -20,17 +20,22 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module apb_tb();
+module apb_slave_tb();
 
     logic clk;
     logic write;
     logic sel;
     logic enable;
     logic ready, wren, rden;
+    logic [2:0] state;
+    logic [1:0] id;
 
+    //interfaces
     APB APB_i(clk);
     Memory_Bus Memory_Bus_i();
-    APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave));
+    
+    //modules
+    APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave), .id(id));
     
     assign APB_i.write = write;
     assign APB_i.sel = sel;
@@ -42,6 +47,8 @@ module apb_tb();
     initial 
     begin
         APB_i.reset_slave;
+        assign state = dut.state;
+        id = 1;
     end
     initial
     begin

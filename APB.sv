@@ -50,7 +50,7 @@ interface Processor_Bus(input logic clk, input logic reset); // not sure if proc
     modport master (input clk, write, sel, reset, addr, wdata, start, wait_cycles, output rdata, ready);
 endinterface
 
-module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id); // fix next state logic
+module APB_Slave(APB.slave sl, Memory_Bus.slave msl, input logic [1:0] id); // fix next state logic
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_write = 1, s_read = 2, s_write_done=3, s_read_done=4;
@@ -83,7 +83,7 @@ module APB_Slave(APB.slave sl, Memory_Bus.slave msl, logic [1:0] id); // fix nex
                             next_state <= s_read_done;
                         end 
                     end 
-                {id, 1'b0}:
+                {id, 1'b1}:
                     begin
                         if (sl.wait_cycles > 0) begin
                             next_state <= s_write;
