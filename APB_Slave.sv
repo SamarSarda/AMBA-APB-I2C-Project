@@ -29,12 +29,25 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id); 
     assign msl.addr = sl.addr;
     assign msl.wdata = sl.wdata;
     assign sl.rdata = msl.rdata;
-
+    assign sl.ready = msl.ready;
+    //assign sl.ready = ready;
+    assign msl.ce = sl.enable;
+    
+    //combinational logic
+    //attached device setting ready if it wants to have control of it
+    //otherwise, apb slave ties it high always
+//    always @(*) begin
+//        if (msl.ready === 1) begin
+//            ready = 1;
+//        end else if (msl.ready === 0) begin
+//            ready = 0;
+//        end
+        
+//    end
+    
     //States
-    always @(negedge sl.clk) begin
-        if (sl.reset) begin
-            next_state <= s_idle;
-        end else if (state == s_idle) begin
+    always @(*) begin
+         if (state == s_idle) begin
             case ({sl.sel, sl.write}) 
                 3'b000: 
                     begin
@@ -46,73 +59,50 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id); 
                     end
                 {id, 1'b0}: 
                     begin
-                        if (sl.wait_cycles > 0) begin
                             next_state <= s_read;
-                            cycles_remaining <= sl.wait_cycles;
-                        end else begin
-                            next_state <= s_read_done;
-                        end 
                     end 
                 {id, 1'b1}:
                     begin
-                        if (sl.wait_cycles > 0) begin
                             next_state <= s_write;
-                            cycles_remaining <= sl.wait_cycles;
-                        end else begin
-                            next_state <= s_write_done;
-                        end
 
                     end 
             endcase
         end else if (state == s_write) begin
-            if (cycles_remaining > 1) begin
-                cycles_remaining = cycles_remaining - 1'b1;
-            end else begin
-                next_state <= s_write_done;
+            if (msl.ready) begin // wait until attached device is ready
+                next_state <= s_idle;
             end
         end else if (state == s_read) begin
-            if (cycles_remaining > 1) begin
-                cycles_remaining = cycles_remaining - 1'b1;
-            end else begin
-                next_state <= s_read_done;
+            if (msl.ready) begin
+                next_state <= s_idle;
             end
-        end else if (state == s_write_done) begin
-                next_state <= s_idle;
-        end else if (state == s_read_done) begin
-                next_state <= s_idle;
         end
         
     end
     
+    
+    always @(posedge sl.clk) begin
+        if (sl.reset) begin
+            state = s_idle;
+            next_state = s_idle; 
+            //msl.ready <= 1'b1;
+        end else begin
+            state = next_state;
+        end
+    end
     //Control Signals
     always @(posedge sl.clk) begin
-        state = next_state;
         if (state == s_idle) begin
-            sl.ready <= 1'b0;
+            //msl.ready <= 1'b1;//tie ready high while enable is low, 
+            //so that attached device can tie low if necessary, but doesnt need to if no wait states
             msl.wren <= 1'b0;
             msl.rden <= 1'b0;
-            msl.ce <= 1'b0;
         end else if (state == s_write) begin
-            sl.ready <= 1'b0;
             msl.wren <= 1'b1;
             msl.rden <= 1'b0;
-            msl.ce <= 1'b1;         
         end else if (state == s_read) begin
-            sl.ready <= 1'b0;
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
-            msl.ce <= 1'b1;
-        end else if (state == s_write_done) begin
-            sl.ready <= 1'b1;
-            msl.wren <= 1'b1;
-            msl.rden <= 1'b0;
-            msl.ce <= 1'b1;
-        end else if (state == s_read_done) begin
-            sl.ready <= 1'b1;
-            msl.wren <= 1'b0;
-            msl.rden <= 1'b1;
-            msl.ce <= 1'b1;
-        end 
+        end
         
     end
     
