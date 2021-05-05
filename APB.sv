@@ -57,7 +57,10 @@ interface Processor_Bus(input logic clk, input logic reset); // not sure if proc
     modport master (input clk, write, sel, reset, addr, wdata, start, wait_cycles, output rdata, stable);
 endinterface
 
-module APB();
-
+module APB(APB_Bus a, Memory_Bus m1, Memory_Bus m2, Processor_Bus pm,input logic [7:0] id, input logic clk);
+    APB_Slave slave1(a.slave, m1.slave, id);
+    APB_Slave slave2(a.slave, m2.slave, id);
+    APB_Master master(a.master, pm.master);
 endmodule
+
 
