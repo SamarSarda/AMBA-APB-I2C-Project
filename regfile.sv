@@ -11,8 +11,8 @@ module regfile (
 				output [7:0] reg1_read_data, 
 				output [7:0] reg2_read_data);
 
-reg [7:0] reg_array [7:0];
-reg [7:0] read_array [7:0];
+logic [7:0] reg_array [7:0];
+logic [7:0] read_array [7:0];
 integer i,f;
 
 initial 

@@ -4,7 +4,7 @@ module mux2to1 (
     input sel,
     output [7:0] Data_out
     ); 
-    reg [7:0] Data_out;
+    logic [7:0] Data_out;
 
     always @(Data_in_0,Data_in_1,sel)
     begin

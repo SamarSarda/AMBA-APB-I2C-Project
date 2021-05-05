@@ -1,15 +1,15 @@
 module decoder(
 	input [23:0]inst,
-	output reg [2:0] ra_addr,
-	output reg [2:0] rb_addr,
-	output reg [2:0] rd_addr,
-	output reg [7:0] imm,
-	output reg [3:0] opcode,
-	output reg [2:0] func,
-	output reg [7:0] addr,
-	output reg [7:0] apb_addr,
-	output reg [7:0] apb_data,
-	output reg [3:0] apb_device
+	output logic [2:0] ra_addr,
+	output logic [2:0] rb_addr,
+	output logic [2:0] rd_addr,
+	output logic [7:0] imm,
+	output logic [3:0] opcode,
+	output logic [2:0] func,
+	output logic [7:0] addr,
+	output logic [7:0] apb_addr,
+	output logic [7:0] apb_data,
+	output logic [3:0] apb_device
 	);
 always @(*) 
 begin

@@ -8,7 +8,7 @@ module datamem (
 				output reg [7:0] read_data
 				);
 
-reg [7:0] register [255:0];
+logic [7:0] register [255:0];
 
 always@(clk && mem_write,clk && mem_read) 
 begin

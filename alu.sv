@@ -3,8 +3,8 @@ module alu(
 	input [7:0] ra,
 	input [7:0] rb_or_imm,
 	input apb_op,
-	output reg [7:0] aluout,
-	output reg br);
+	output logic [7:0] aluout,
+	output logic br);
 
 parameter	ALU_OP_ADD	= 3'b000,
 			ALU_OP_SUB	= 3'b001,
