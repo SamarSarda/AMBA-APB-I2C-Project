@@ -20,15 +20,16 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module apb_tb();
+module apb_master_tb();
 
     logic clk;
     logic write;
     logic sel;
     logic enable;
     logic ready, wren, rden;
+    logic [2:0] state;
 
-    APB APB_i(clk);
+    APB_Bus APB_i(clk);
     Memory_Bus Memory_Bus_i();
     Processor_Bus Processor_bus_i(clk, reset);
     //APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave));
@@ -43,6 +44,7 @@ module apb_tb();
     initial 
     begin
         APB_i.reset_slave;
+        assign state = dut.state;
     end
     initial
     begin

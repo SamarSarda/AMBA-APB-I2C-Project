@@ -31,7 +31,7 @@ module apb_slave_tb();
     logic [1:0] id;
 
     //interfaces
-    APB APB_i(clk);
+    APB_Bus APB_i(clk);
     Memory_Bus Memory_Bus_i();
     
     //modules
