@@ -220,9 +220,10 @@ module APB_Master(APB.master ms, Processor_Bus.master pm);
     end
     
 endmodule
-
+/*
 
 module APB(APB.master ms, APB.slave sl, Processor_Bus.master pb_ms, Memory_Bus.slave msl);
     APB_Master ap_master(ms,pbms);
     APB_Slave ap_slave(sl,msl);
 endmodule
+*/
