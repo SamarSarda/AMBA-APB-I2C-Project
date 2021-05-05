@@ -83,5 +83,3 @@ module I2C (I2C_Bus i2c_bus, I2C_Memory_Bus mem, APB_I2C_Bus apb, input logic [7
 
 endmodule
 
-
-

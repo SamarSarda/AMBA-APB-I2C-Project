@@ -37,6 +37,12 @@ task initiate();
     end
 endtask
 
+task initiate_rand();
+    for (i = 0; i < 256; i = i + 1) begin
+        mem[i] = $random%10;
+    end
+endtask
+
 //initial
 //begin
 //    mem[1] <= 5;//for testing purposes
