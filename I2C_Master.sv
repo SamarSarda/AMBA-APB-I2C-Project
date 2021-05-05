@@ -61,6 +61,13 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
             end
         end
     end
+    
+    //if state isnt stop, transfer isnt done
+    always@(*) begin
+        if (state != s_stop) begin
+            apb.ready <= 0;
+        end
+    end
 
     //next state gen
     always @(*) begin // need to add state_completed code
@@ -189,7 +196,7 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
             apb.error <= 0;
             x2clk_pulse_counter <= 0;
         end else if (state == s_stop) begin // need to check if i need stop or idle or both
-            //no apb ready signal, need to time correctly
+            apb.ready <= 1;
         end else if (state == s_start) begin
             slave_address <= apb.addr[7:6];
             mem_address <= apb.addr[5:0];

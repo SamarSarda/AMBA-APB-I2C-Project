@@ -34,7 +34,7 @@ module I2C_testbench();
     logic [7:0] id;
     
     //apb-i2c bus interface signals
-    logic wren, rden, clk, ce, error;
+    logic wren, rden, clk, ce, error, ready;
     logic [7:0] wdata, rdata, addr;
     
     //etset interface signals
@@ -76,6 +76,7 @@ module I2C_testbench();
     assign apb.rdata = rdata;
     assign apb.addr = addr;
     assign error = apb.error;
+    assign ready = apb.ready;
     
     //test interface linkage
     assign slave_state = test.slave_state;
@@ -285,5 +286,4 @@ module I2C_testbench();
     end
     
 endmodule
-
 
