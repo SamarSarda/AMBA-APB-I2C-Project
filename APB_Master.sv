@@ -21,13 +21,13 @@
 
 
 //needs error code to account for processor providing invalid input combinations e.g. start = 1, but sel = 0
-module APB_Master(APB_Bus.master ms, Processor_Bus.master pm);
+module APB_Master(APB_Bus.master ms, Processor_Bus.master pm, input clk);
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_setup = 1, s_access = 2;
     logic after_ready;
     
-    assign ms.clk = pm.clk;
+    //assign ms.clk = pm.clk;
     //assign pm.ready = ms.ready;
     //assign pm.rdata = ms.rdata;
     //States
@@ -64,8 +64,8 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm);
         end
     end
 
-    always @(posedge pm.clk) begin
-        if (pm.reset) begin
+    always @(posedge clk) begin
+        if (ms.reset) begin
             state = s_idle;
             next_state = s_idle;
             after_ready = 0;
@@ -75,7 +75,7 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm);
     end
 
     //Control Signals
-    always @(posedge pm.clk) begin 
+    always @(posedge clk) begin 
         if (state == s_idle) begin
             ms.sel <= 2'b00;
             ms.enable <= 1'b0;

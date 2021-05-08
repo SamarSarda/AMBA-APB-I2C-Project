@@ -20,11 +20,12 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, input logic clk); // fix next state logic
+module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, input logic clk, input logic usesSubModuleReady); // fix next state logic
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_write = 1, s_read = 2, s_write_done=3, s_read_done=4;
     logic [7:0] cycles_remaining;
+    logic ready;
     //assign msl.clk = sl.clk; // do exterally
     //so in states
     //assign msl.addr = sl.addr;
@@ -69,11 +70,11 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, i
                     end 
             endcase
         end else if (state == s_write) begin
-            if (msl.ready) begin // wait until attached device is ready
+            if (sl.ready) begin // when this module writes a ready signal, signals will be ready next cycle, so we need to go to idle state
                 next_state <= s_idle;
             end
         end else if (state == s_read) begin
-            if (msl.ready) begin
+            if (sl.ready) begin
                 next_state <= s_idle;
                 
             end
@@ -82,7 +83,7 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, i
     end
     
     
-    always @(posedge sl.clk) begin
+    always @(posedge clk) begin
         if (sl.reset) begin
             state = s_idle;
             next_state = s_idle; 
@@ -92,13 +93,18 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, i
         end
     end
     //Control Signals
-    always @(posedge sl.clk) begin
+    always @(posedge clk) begin
         if (state == s_idle) begin
             //msl.ready <= 1'b1;//tie ready high while enable is low, 
             //so that attached device can tie low if necessary, but doesnt need to if no wait states
             msl.wren <= 1'b0;
             msl.rden <= 1'b0;
-            sl.ready <= 0;
+            
+            if (usesSubModuleReady) begin//if we use the submodule's ready signal, our output register ready needs to be reset here
+                sl.ready <= 0;
+            end else begin//otherwise if we don't, we can tie ready high
+                sl.ready <= 1;
+            end
             msl.ce <= 1;
         end else if (state == s_write) begin
            msl.wdata <= sl.wdata;
@@ -106,7 +112,11 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, i
             msl.wren <= 1'b1;
             msl.rden <= 1'b0;
             msl.ce <= 1;
-            if (msl.ready) begin
+            if (usesSubModuleReady) begin
+                if (msl.ready == 1) begin 
+                    sl.ready <= 1;
+                end
+            end else begin
                 sl.ready <= 1;
             end
         end else if (state == s_read) begin
@@ -114,9 +124,14 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, i
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
             msl.ce <= 1;
-            if (msl.ready) begin
-                sl.rdata <= msl.rdata;
+            if (usesSubModuleReady) begin
+                if (msl.ready == 1) begin 
+                    sl.ready <= 1;
+                    sl.rdata <= msl.rdata;
+                end
+            end else begin
                 sl.ready <= 1;
+                sl.rdata <= msl.rdata;
             end
         end
         

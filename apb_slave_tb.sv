@@ -33,12 +33,23 @@ module apb_slave_tb();
 
     //interfaces
     APB_Bus APB_i(clk);
-    Memory_Bus Memory_Bus_i(clk);
+    Memory_Bus Memory_Bus_i();
     
     //modules
-    APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave), .id(id));
-    memory mem(.clk(clk), .ce(Memory_Bus_i.ce), .rden(Memory_Bus_i.rden), 
-        .wren(Memory_Bus_i.wren), .wr_data(Memory_Bus_i.wdata), .rd_data(Memory_Bus_i.rdata), .addr(Memory_Bus_i.addr));
+    APB_Slave dut(.sl(APB_i.slave),
+     .msl(Memory_Bus_i.slave),
+      .id(id),
+       .usesSubModuleReady(1),
+        .clk(clk));
+        //we are simulating a submodule ready signal for testing wait cycles in the apb slave, 
+          //so usesSubModuleReady is set to 1 to allow us to control ready signal explicitly
+    memory mem(.clk(clk),
+     .ce(Memory_Bus_i.ce),
+      .rden(Memory_Bus_i.rden),
+        .wren(Memory_Bus_i.wren),
+         .wr_data(Memory_Bus_i.wdata),
+          .rd_data(Memory_Bus_i.rdata),
+           .addr(Memory_Bus_i.addr));
     
     //apb
     assign APB_i.write = write;
@@ -54,15 +65,13 @@ module apb_slave_tb();
     assign ce = Memory_Bus_i.ce;
     assign rdata = Memory_Bus_i.rdata;
     
-    initial 
-    begin
-        APB_i.reset_slave;
-        assign state = dut.state;
-        id = 1;
-    end
+
     initial
     begin
         clk = 0;
+        APB_i.reset_all_apbs; // resetting slave
+        assign state = dut.state;
+        id = 1;
         mem.initiate();
         Memory_Bus_i.ready = 1;
         @(posedge clk);
