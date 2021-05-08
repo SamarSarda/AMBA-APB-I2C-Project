@@ -33,12 +33,12 @@ module apb_slave_tb();
 
     //interfaces
     APB_Bus APB_i(clk);
-    Memory_Bus Memory_Bus_i();
+    Memory_Bus Memory_Bus_i(clk);
     
     //modules
     APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave), .id(id));
-    memory mem(.clk(Memory_Bus_i.clk), .ce(Memory_Bus_i.ce), .rden(Memory_Bus_i.rden), 
-        .wren(Memory_Bus_i.wren), .wr_data(APB_i.wdata), .rd_data(Memory_Bus_i.rdata), .addr(APB_i.addr));
+    memory mem(.clk(clk), .ce(Memory_Bus_i.ce), .rden(Memory_Bus_i.rden), 
+        .wren(Memory_Bus_i.wren), .wr_data(Memory_Bus_i.wdata), .rd_data(Memory_Bus_i.rdata), .addr(Memory_Bus_i.addr));
     
     //apb
     assign APB_i.write = write;
@@ -63,6 +63,7 @@ module apb_slave_tb();
     initial
     begin
         clk = 0;
+        mem.initiate();
         Memory_Bus_i.ready = 1;
         @(posedge clk);
         @(posedge clk);

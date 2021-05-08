@@ -33,11 +33,11 @@ interface APB_Bus (input logic clk, input logic reset);
     modport slave (input clk, write, sel, wdata, enable, reset, wait_cycles, addr, output ready, rdata);
 endinterface
 
-interface Memory_Bus();
-    logic wren, rden, clk, ce, ready, error;
+interface Memory_Bus(input logic clk);//when connecting to a memory module, tie ready high
+    logic wren, rden, ce, ready, error;
     logic [7:0] wdata, rdata, addr;
 
-    modport slave (input rdata, addr, output wdata, wren, rden, clk, ce, inout ready);
+    modport slave (input rdata, addr, output wdata, wren, rden, ce, inout ready);
     modport mem (output rdata, input wdata, wren, rden, clk, ce, addr, inout ready);
 endinterface 
 
@@ -61,7 +61,6 @@ endinterface
 module APB(APB_Bus apb1, APB_Bus apb2, Memory_Bus m1, Memory_Bus m2, Processor_Bus pm, input logic [1:0] id1, input logic [1:0] id2, input logic clk);
     APB_Slave slave1(apb1.slave, m1.slave, id1);
     APB_Slave slave2(apb2.slave, m2.slave, id2);
-    APB_Master master(apb1.master, apb2.master, pm.master);
+    //APB_Master master(apb1.master, apb2.master, pm.master);
 endmodule
-
 

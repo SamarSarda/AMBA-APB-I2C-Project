@@ -20,18 +20,19 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id); // fix next state logic
+module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, input logic clk); // fix next state logic
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_write = 1, s_read = 2, s_write_done=3, s_read_done=4;
     logic [7:0] cycles_remaining;
-    assign msl.clk = sl.clk;
-    assign msl.addr = sl.addr;
-    assign msl.wdata = sl.wdata;
-    assign sl.rdata = msl.rdata;
-    assign sl.ready = msl.ready;
+    //assign msl.clk = sl.clk; // do exterally
+    //so in states
+    //assign msl.addr = sl.addr;
+    //assign msl.wdata = sl.wdata;
+    //assign sl.rdata = msl.rdata;
+    //assign sl.ready = msl.ready;
     //assign sl.ready = ready;
-    assign msl.ce = sl.enable;
+    //assign msl.ce = sl.enable; //done in states kind of, no reliance on sl
     
     //combinational logic
     //attached device setting ready if it wants to have control of it
@@ -74,6 +75,7 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id); 
         end else if (state == s_read) begin
             if (msl.ready) begin
                 next_state <= s_idle;
+                
             end
         end
         
@@ -96,12 +98,26 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id); 
             //so that attached device can tie low if necessary, but doesnt need to if no wait states
             msl.wren <= 1'b0;
             msl.rden <= 1'b0;
+            sl.ready <= 0;
+            msl.ce <= 1;
         end else if (state == s_write) begin
+           msl.wdata <= sl.wdata;
+            msl.addr <= sl.addr;
             msl.wren <= 1'b1;
             msl.rden <= 1'b0;
+            msl.ce <= 1;
+            if (msl.ready) begin
+                sl.ready <= 1;
+            end
         end else if (state == s_read) begin
+            msl.addr <= sl.addr;
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
+            msl.ce <= 1;
+            if (msl.ready) begin
+                sl.rdata <= msl.rdata;
+                sl.ready <= 1;
+            end
         end
         
     end

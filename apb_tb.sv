@@ -157,8 +157,10 @@ module apb_tb();
     
     
     
-    initial 
+
+    initial
     begin
+        clk = 0;
         id1 = 1;
         id2 = 2;
         Processor_bus_i.reset_master;
@@ -175,10 +177,8 @@ module apb_tb();
         
         @(negedge clk); reset <= 1; @(posedge clk);
         @(negedge clk); reset <= 0; @(posedge clk);
-    end
-    initial
-    begin
-        clk = 0;
+    
+        
         
         @(posedge clk);   //write transfer
         p_write = 1;

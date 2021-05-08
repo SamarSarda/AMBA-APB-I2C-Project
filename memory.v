@@ -26,28 +26,20 @@ input clk, ce, wren, rden;
 input [7:0] addr, wr_data;
 output reg [7:0] rd_data;
 
-reg [7:0] mem [0:255];//should initialize with values for testing purposes
+reg [7:0] mem [0:255];
 
 integer i;
-task initiate();
-    
-    for (i = 0; i < 256; i = i + 1) begin
-        mem[i] = i;
-        $display ("%d", i);
+task initiate(); // used for testing
+    begin
+        $display ("Memory initiating...");
+        for (i = 0; i < 256; i = i + 1) begin
+            mem[i] = i;
+        end
+        $display ("Memory initiation complete.");
     end
 endtask
 
-task initiate_rand();
-    for (i = 0; i < 256; i = i + 1) begin
-        mem[i] = $random%10;
-    end
-endtask
-
-//initial
-//begin
-//    mem[1] <= 5;//for testing purposes
-//end
-always @ (posedge clk) 
+always @ (posedge clk) begin
 if (ce) 
 begin
    if (rden) 
