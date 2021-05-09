@@ -1,4 +1,5 @@
 module mux2to1_3bit (
+    input clk,
     input [2:0] rd_addr,
     input [2:0] rb_addr,
     input sel,

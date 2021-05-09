@@ -4,12 +4,9 @@ module cpu;
 logic clk,clk2;
 reg [7:0] read_array [7:0];
 reg [7:0] reg_array [7:0];
-wire [7:0] apb_addr;
-wire [7:0] apb_data;
-wire [3:0] apb_device;
-wire apb_write;
-wire ready;
-bit_cpu cpu(.clk(clk),.clk2(clk2), .ready(ready), .apb_write(apb_write), .apb_addr(apb_addr), .apb_data(apb_data), .apb_device(apb_device));
+
+Processor_Bus Processor_bus_i();
+bit_cpu cpu(.clk(clk),.clk2(clk2), .pm(Processor_bus_i.processor));
 
 int i;
 initial

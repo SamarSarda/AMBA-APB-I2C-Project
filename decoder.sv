@@ -1,4 +1,5 @@
 module decoder(
+    input clk,
 	input [23:0]inst,
 	output logic [2:0] ra_addr,
 	output logic [2:0] rb_addr,
@@ -11,7 +12,7 @@ module decoder(
 	output logic [7:0] apb_data,
 	output logic [3:0] apb_device
 	);
-always @(*) 
+always @(clk && inst) 
 begin
   opcode[3:0]	= inst[23:20];
   rd_addr[2:0]	= inst[11:9];
@@ -27,5 +28,7 @@ begin
   imm[6]=imm[5];
   imm[7]=imm[5];
   addr[7]=addr[6];
+  
+  $display("hello dummy %b", inst);
 end
 endmodule

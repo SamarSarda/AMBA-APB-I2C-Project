@@ -52,6 +52,7 @@ module control_unit(
     output reg mem_to_reg,
     output reg apb_write,
     output reg continue_flag,
+    output reg start_flag,
     output reg nia
 );
 
@@ -178,10 +179,10 @@ begin
 		reg_write	= 1'b1;
 		mem_read	= 1'b0;
 		mem_write	= 1'b0;
-		nia			= 1'b0;	
+		nia			= 1'b1;	
 		
 		continue_flag = 1'b0;
-		
+		start_flag = 1'b1;
 		while(ready == 0) begin
 		// do nothing 
 		;
@@ -196,9 +197,10 @@ begin
 		reg_write	= 1'b0;
 		mem_read	= 1'b0;
 		mem_write	= 1'b0;
-		nia			= 1'b0;	
+		nia			= 1'b1;	
 		continue_flag = 1'b0;
-		//add flage
+		start_flag = 1'b1;
+		//add flag
 		while(ready == 0) begin
 		// do nothing 
 		;

@@ -1,5 +1,5 @@
 
-module bit_cpu(input clk,input clk2, input ready, output apb_write, output apb_addr, inout apb_data,output apb_device);
+module bit_cpu(input clk,input clk2, Processor_Bus.processor pm);
 
 wire [7:0] addr;
 wire [2:0] func;
@@ -30,18 +30,58 @@ wire mem_to_reg;
 wire [7:0] mem_out;
 wire continue_flag;
 wire apb_op;
+reg start_flag;
 
 reg [7:0] pc_current; // was reg 
 wire [2:0] rd_or_rb_addr;
 
  initial 
  begin
+  start_flag <= 1'b0;
   pc_current <= 8'd0;
  end
 
+always @(posedge clk2) 
+begin
+    if(start_flag == 1) begin
+         pm.start = 1'b1;
+        start_flag = 1'b0;
+    end
+    else if (start_flag ==0) begin
+        pm.start = 1'b0;
+    end
+   
+    if(continue_flag == 1'b1) begin
+    //check flag
+        #5
+        if(nia == 1'b0)
+            pc_current <= pc_current + addr;
+        else if (br == 1'b1)
+            pc_current <= pc_current + imm;
+        else 
+            pc_current <= pc_current + 8'd1;
+    end
+end
+
+always@(posedge clk2) 
+begin
+    $display("pc is %b",pc_current);
+    $display ("inst=%b",inst);
+    //$display ("aluout is %b", aluout);
+    //$display ("apb_op is %b", apb_op);
+    //$display ("ra_addr is %b", ra_addr);
+    $display ("ra is %b", ra);
+    $display ("rb_imm is %b", rb_or_imm);
+		
+end
+
+
+
 imem imem(.addr(pc_current),.inst(inst));
 
-decoder decoder(.inst(inst),
+decoder decoder(
+        .clk(clk2),
+        .inst(inst),
 		.ra_addr(ra_addr),
 		.rb_addr(rb_addr),
 		.rd_addr(rd_addr),
@@ -49,16 +89,16 @@ decoder decoder(.inst(inst),
 		.opcode(opcode),
 		.func(func),
 		.addr(addr),
-		.apb_addr(apb_addr),
-		.apb_data(apb_data),
-		.apb_device(apb_device)
+		.apb_addr(pm.addr),
+		.apb_data(pm.wdata),
+		.apb_device(pm.sel)
 		);
 
 
 control_unit  control(
 		 .opcode(opcode),
 		 .func(func),
-		 .ready(ready),
+		 .ready(pm.stable),
 		 .reg_dst(reg_dst),
 		 .reg_write(reg_write),
 		 .alusrc(alusrc),
@@ -69,6 +109,7 @@ control_unit  control(
 		 .apb_write(apb_write),
 		 .mem_to_reg(mem_to_reg),
 		 .continue_flag(continue_flag),
+		 .start_flag(start_flag),
 		 .nia(nia)
 		 );
 
@@ -88,7 +129,7 @@ regfile  regfile(
 		.reg_write_addr(rd_or_rb_addr),
 	    .apb_op(apb_op),
 		.reg_write_data(rd),
-		.apb_data(apb_data),
+		.apb_data(pm.rdata),
 		.reg_write_en(reg_write)
 		);
 
@@ -124,23 +165,6 @@ mux2to1 mux2to11(
 		.Data_out(rd)	
 		);
 
-always @(posedge clk2) 
-begin
-    if(continue_flag == 1'b1) begin
-    //check flag
-        #5
-        if(nia == 1'b0)
-            pc_current = pc_current + addr;
-        else if (br == 1'b1)
-            pc_current = pc_current + imm;
-        else 
-            pc_current = pc_current + 8'd1;
-    end
-end
 
-always@(posedge clk2) 
-begin
-	$display ("inst=%b",inst);	
-end
 
 endmodule
