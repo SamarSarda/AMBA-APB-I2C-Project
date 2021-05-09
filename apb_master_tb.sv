@@ -36,29 +36,29 @@ module apb_master_tb();
     logic [7:0] a_wdata, a_rdata, a_addr;
     logic [1:0] a_sel;
     
-    APB_Bus APB_i(clk);
+    APB_Bus apb_bus(clk);
 
-    Processor_Bus Processor_bus_i();
-    //APB_Slave dut(.sl(APB_i.slave), .msl(Memory_Bus_i.slave));
-    APB_Master dut(APB_i.master, Processor_bus_i.master, clk);
+    Processor_Bus processor_bus();
+    //APB_Slave dut(.sl(apb_bus.slave), .msl(Memory_Bus_i.slave));
+    APB_Master dut(apb_bus.master, processor_bus.master, clk);
     
-    assign APB_i.ready = a_ready;
-    assign enable = APB_i.enable;
-    assign a_write = APB_i.write;
-    assign a_reset = APB_i.reset;
-    assign a_wdata = APB_i.wdata;
-    assign a_addr = APB_i.addr;
-    assign a_sel = APB_i.sel;
-    assign APB_i.rdata = a_rdata;
+    assign apb_bus.ready = a_ready;
+    assign enable = apb_bus.enable;
+    assign a_write = apb_bus.write;
+    assign a_reset = apb_bus.reset;
+    assign a_wdata = apb_bus.wdata;
+    assign a_addr = apb_bus.addr;
+    assign a_sel = apb_bus.sel;
+    assign apb_bus.rdata = a_rdata;
     
     
-    assign Processor_bus_i.write = p_write;
-    assign stable = Processor_bus_i.stable;
-    assign Processor_bus_i.start = start;
-    assign Processor_bus_i.wdata = p_wdata;
-    assign Processor_bus_i.addr = p_addr;
-    assign Processor_bus_i.sel = p_sel;
-    assign p_rdata = Processor_bus_i.rdata;
+    assign processor_bus.write = p_write;
+    assign stable = processor_bus.stable;
+    assign processor_bus.start = start;
+    assign processor_bus.wdata = p_wdata;
+    assign processor_bus.addr = p_addr;
+    assign processor_bus.sel = p_sel;
+    assign p_rdata = processor_bus.rdata;
     
     
     
@@ -66,7 +66,7 @@ module apb_master_tb();
     
     initial 
     begin
-        APB_i.reset_APBs;
+        apb_bus.reset_APBs;
         assign state = dut.state;
     end
     initial
@@ -101,7 +101,7 @@ module apb_master_tb();
         p_sel = 0;
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 5;
+        //apb_bus.wait_cycles = 5;
         @(posedge clk);
         p_write = 1;
         p_sel = 1;
@@ -122,7 +122,7 @@ module apb_master_tb();
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 5;
+        //apb_bus.wait_cycles = 5;
         @(posedge clk);
         p_write = 0;
         p_sel = 1;
@@ -143,7 +143,7 @@ module apb_master_tb();
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 1;
+        //apb_bus.wait_cycles = 1;
         @(posedge clk);
         p_write = 1;
         p_sel = 1;
@@ -160,7 +160,7 @@ module apb_master_tb();
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 1;
+        //apb_bus.wait_cycles = 1;
         @(posedge clk);
         p_write = 0;
         p_sel = 1;

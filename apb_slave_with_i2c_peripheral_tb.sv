@@ -51,11 +51,7 @@ module apb_slave_with_i2c_peripheral_tb();
     assign ready = apb_bus.ready;
     assign rdata = apb_bus.rdata;
     
-    //memory
-    
-//    assign wren = memory_bus.wren;
-//    assign rden = memory_bus.rden;
-//    assign ce = memory_bus.ce;
+    //important values
     assign apb_slave_state = dut.a2im.apb_slave.state;
     assign i2c_master_state = dut.a2im.i2c_master.state;
     assign i2c_slave_state = dut.sm.slave.state;
