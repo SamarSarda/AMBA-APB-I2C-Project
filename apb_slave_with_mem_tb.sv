@@ -3,7 +3,7 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 05/08/2021 07:23:29 PM
+// Create Date: 05/08/2021 08:24:04 PM
 // Design Name: 
 // Module Name: apb_slave_with_mem_tb
 // Project Name: 
@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module apb_slave_with_mem_tb(
+module apb_slave_with_mem_tb();
  logic clk;
     logic write;
     logic sel;
@@ -46,21 +46,21 @@ module apb_slave_with_mem_tb(
     assign APB_i.addr = addr;
     
     //memory
-    assign ready = Memory_Bus_i.ready;
-    assign wren = Memory_Bus_i.wren;
-    assign rden = Memory_Bus_i.rden;
-    assign ce = Memory_Bus_i.ce;
-    assign rdata = Memory_Bus_i.rdata;
+    assign ready = sm.Memory_Bus_i.ready;
+    assign wren = sm.Memory_Bus_i.wren;
+    assign rden = sm.Memory_Bus_i.rden;
+    assign ce = sm.Memory_Bus_i.ce;
+    assign rdata = sm.Memory_Bus_i.rdata;
     
 
     initial
     begin
         clk = 0;
         APB_i.reset_all_apbs; // resetting slave
-        assign state = dut.state;
+        assign state = sm.dut.state;
         id = 1;
         sm.mem.initiate();
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);   //write transfer
@@ -92,7 +92,7 @@ module apb_slave_with_mem_tb(
         sel = 1;
         wdata = 4;
         addr= 5;
-        Memory_Bus_i.ready = 0;
+        sm.Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
@@ -100,7 +100,7 @@ module apb_slave_with_mem_tb(
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
@@ -111,7 +111,7 @@ module apb_slave_with_mem_tb(
         write = 0;
         sel = 1;
         addr= 5;
-        Memory_Bus_i.ready = 0;
+        sm.Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
@@ -119,7 +119,7 @@ module apb_slave_with_mem_tb(
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
@@ -131,11 +131,11 @@ module apb_slave_with_mem_tb(
         sel = 1;
         wdata = 3;
         addr= 4;
-        Memory_Bus_i.ready = 0;
+        sm.Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
@@ -146,11 +146,11 @@ module apb_slave_with_mem_tb(
         write = 0;
         sel = 1;
         addr= 4;
-        Memory_Bus_i.ready = 0;
+        sm.Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
@@ -162,13 +162,13 @@ module apb_slave_with_mem_tb(
         sel = 1;
         wdata = 2;
         addr= 3;
-        Memory_Bus_i.ready = 0;
+        sm.Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  
@@ -179,13 +179,13 @@ module apb_slave_with_mem_tb(
         write = 0;
         sel = 1;
         addr= 3;
-        Memory_Bus_i.ready = 0;
+        sm.Memory_Bus_i.ready = 0;
         @(posedge clk);
         enable = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);
-        Memory_Bus_i.ready = 1;
+        sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         enable =0;
         sel = 0;  

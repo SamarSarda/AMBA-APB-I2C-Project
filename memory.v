@@ -47,6 +47,7 @@ begin
    else if (wren) 
        mem[addr] <= wr_data;
 end
+end
 
 endmodule
 
