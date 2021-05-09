@@ -41,4 +41,9 @@ module APB_Slave_with_mem(
       .id(id),
        .usesSubModuleReady(1),
         .clk(clk));
+        
+        task initiate;
+        APB_i.reset_APBs;
+        mem.initiate;
+    endtask
 endmodule
