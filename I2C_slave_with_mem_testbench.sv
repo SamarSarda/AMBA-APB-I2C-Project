@@ -33,7 +33,7 @@ module I2C_slave_with_mem_testbench();
     logic [7:0] slave_data;
     
     //interfaces
-    I2C_Bus I2C_Bus();
+    I2C_Bus I2C_Bus(clk);
     
     //modules
         
@@ -60,7 +60,7 @@ module I2C_slave_with_mem_testbench();
         SCL <= 1;
         
 //read transfer from addr 0000 0001, should be 0000 0101
-        I2C_Bus.reset_I2Cs;//set state to stop, initial state
+        I2C_Bus.reset_slave;//set state to stop, initial state
        
         
         I2C_Bus.SDA <= 1;

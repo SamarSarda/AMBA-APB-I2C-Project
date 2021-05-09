@@ -24,7 +24,7 @@ interface APB_Bus (input logic clk);
     logic [7:0] wdata, rdata, addr, wait_cycles;
     logic [1:0] sel;
     
-    task reset_all_apbs; 
+    task reset_APBs; 
     @ (negedge clk);
     reset = 1'b1;
     @ (negedge clk); 

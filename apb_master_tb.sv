@@ -66,7 +66,7 @@ module apb_master_tb();
     
     initial 
     begin
-        APB_i.reset_all_apbs;
+        APB_i.reset_APBs;
         assign state = dut.state;
     end
     initial
@@ -118,7 +118,7 @@ module apb_master_tb();
         @(posedge clk);
         a_ready = 1;
         @(posedge clk);
-
+        a_ready = 0;
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
@@ -139,7 +139,7 @@ module apb_master_tb();
         a_ready = 1;
         a_rdata = 6;
         @(posedge clk);
-        
+        a_ready = 0;
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //write transfer with wait states
@@ -156,7 +156,7 @@ module apb_master_tb();
         @(posedge clk);
         a_ready = 1;
         @(posedge clk);
-
+        a_ready = 0;
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);     //read transfer with wait states
@@ -173,7 +173,7 @@ module apb_master_tb();
         a_ready = 1;
         a_rdata = 7;
         @(posedge clk);
-        
+        a_ready = 0;
         p_sel = 0;  
         @(posedge clk);
         @(posedge clk);

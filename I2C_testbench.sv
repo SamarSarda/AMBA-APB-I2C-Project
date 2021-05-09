@@ -52,39 +52,38 @@ module I2C_testbench();
     
     //interfaces
     I2C_Memory_Bus I2C_Memory_Bus_i();
-    I2C_Bus i2c_bus();
-    I2C_test_signals test();
-    APB_I2C_Bus apb();
+    I2C_Bus i2c_bus(clk);
+    APB_I2C_Bus apb_i2c_bus();
     
     //modules
-    memory mem(.clk(I2C_Memory_Bus_i.clk), .ce(I2C_Memory_Bus_i.ce), .rden(I2C_Memory_Bus_i.rden), 
+    memory mem(.clk(clk), .ce(I2C_Memory_Bus_i.ce), .rden(I2C_Memory_Bus_i.rden), 
         .wren(I2C_Memory_Bus_i.wren), .wr_data(I2C_Memory_Bus_i.wdata), .rd_data(I2C_Memory_Bus_i.rdata), .addr(I2C_Memory_Bus_i.addr));
         
-    I2C i2c(i2c_bus, I2C_Memory_Bus_i, apb, id, clk8x, test);//connect with system clock (clk8x)
+    I2C i2c(i2c_bus, I2C_Memory_Bus_i, apb_i2c_bus, id, clk);//connect with system clock (clk8x)
     
     
     //control vars linkage to interfaces
     assign SCL = i2c_bus.SCL;
     assign SDA = i2c_bus.SDA;
-    assign i2c_bus.reset = reset;
+    assign reset = i2c_bus.reset;
     
-    //apb interface linkage
-    assign apb.wren = wren;
-    assign apb.rden = rden;
-    assign apb.ce = ce;
-    assign apb.wdata = wdata;
-    assign apb.rdata = rdata;
-    assign apb.addr = addr;
-    assign error = apb.error;
-    assign ready = apb.ready;
+    //apb_i2c_bus interface linkage
+    assign apb_i2c_bus.wren = wren;
+    assign apb_i2c_bus.rden = rden;
+    assign apb_i2c_bus.ce = ce;
+    assign apb_i2c_bus.wdata = wdata;
+    assign rdata = apb_i2c_bus.rdata;
+    assign apb_i2c_bus.addr = addr;
+    assign error = apb_i2c_bus.error;
+    assign ready = apb_i2c_bus.ready;
     
-    //test interface linkage
-    assign slave_state = test.slave_state;
-    assign slave_data = test.slave_data;
-    assign master_state = test.master_state;
-    assign master_data = test.master_data;
-    assign slave_select = test.slave_select;
-    assign slave_mem_address = test.slave_mem_address;
+    //test signals
+    assign slave_state = i2c.slave.state;
+    assign slave_data = i2c.slave.data_buffer;
+    assign master_state = i2c.master.state;
+    assign master_data = i2c.master.data;
+    assign slave_select = i2c.slave.slave_address_buffer;
+    assign slave_mem_address = i2c.slave.mem_address_buffer;
     
     initial 
     begin
@@ -103,91 +102,91 @@ module I2C_testbench();
     initial
     begin
         c = 0;
-        clk8x <= 1;
-        assign clk = SCL;
+        clk <= 1;
         //memory_shadow[0] = mem.mem[1];
         
-        @(negedge clk8x); reset <= 1; @(posedge clk8x);
-        @(negedge clk8x); reset <= 0; @(posedge clk8x);
+//        @(negedge clk); reset <= 1; @(posedge clk);
+//        @(negedge clk); reset <= 0; @(posedge clk);
+        I2C_Bus.reset_I2Cs;
         
-        @(negedge clk);
+        @(negedge SCL);
         
         rden = 1;
         wren = 0;
         ce = 1;
         addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
 
-        @(posedge clk);//read transfer starting with start state
+        @(posedge SCL);//read transfer starting with start state
         
         //device address bits sent at each negedge
-        @(posedge clk);//device address
+        @(posedge SCL);//device address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //1
         
-        @(posedge clk);//read
+        @(posedge SCL);//read
         //1
-        @(posedge clk);//slave acknowledge selection
+        @(posedge SCL);//slave acknowledge selection
         
-        @(posedge clk);//memory address
+        @(posedge SCL);//memory address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //1
-        @(posedge clk);//acknowledge from slave
+        @(posedge SCL);//acknowledge from slave
         
-        @(posedge clk);//data read
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
+        @(posedge SCL);//data read
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
         
-        @(posedge clk);
-        @(posedge clk);
+        @(posedge SCL);
+        @(posedge SCL);
         
-        @(posedge clk);//acknowledge from master
+        @(posedge SCL);//acknowledge from master
         
         
         //stop happens between here
         
         
-        @(negedge clk);//reseting ce so that master stays idle
-        //ce <= 0;
+        @(negedge SCL);//reseting ce so that master stays idle
+        ce <= 0;
         
-        @(posedge clk); 
+        @(posedge SCL); 
         
         //idle state starts between here
         
-        @(negedge clk);
-        @(posedge clk);//still idle
-        @(posedge clk);//still idle
+        @(negedge SCL);
+        @(posedge SCL);//still idle
+        @(posedge SCL);//still idle
         
         //write tranfer
-        @(negedge clk);
+        @(negedge SCL);
 
         rden = 0;
         wren = 1;
@@ -197,81 +196,81 @@ module I2C_testbench();
         
         //write transfer starting with start state
         
-        @(posedge clk);//start
+        @(posedge SCL);//start
         
-        @(posedge clk);//device address
+        @(posedge SCL);//device address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //1
-        @(posedge clk);//write
+        @(posedge SCL);//write
         //0
-        @(posedge clk);//slave acknowledge selection
+        @(posedge SCL);//slave acknowledge selection
         
-        @(posedge clk);//memory address
+        @(posedge SCL);//memory address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
-        //1
-        
-        @(posedge clk);//acknowledge from slave
-        
-        @(posedge clk);//data write
-        //0
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
+        @(posedge SCL);
         //1
         
-        @(posedge clk);//acknowledge from slave
+        @(posedge SCL);//acknowledge from slave
+        
+        @(posedge SCL);//data write
+        //0
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        
+        @(posedge SCL);//acknowledge from slave
         
         //reseting ce so that master stays idle
-        @(negedge clk);
+        @(negedge SCL);
         ce <= 0;
-        @(posedge clk); //still idle
+        @(posedge SCL); //still idle
         
         //stop happens between here
         
-        @(negedge clk);
+        @(negedge SCL);
         
         //idle state starts between here
         
-        @(posedge clk); //still idle
-        @(posedge clk); //still idle
-        @(posedge clk); //still idle
-        @(posedge clk); //still idle
+        @(posedge SCL); //still idle
+        @(posedge SCL); //still idle
+        @(posedge SCL); //still idle
+        @(posedge SCL); //still idle
            
         
         
@@ -279,9 +278,9 @@ module I2C_testbench();
         $finish;
     end
     always begin
-        #5 clk8x <= ~clk8x;
+        #5 clk <= ~clk;
     end
-    always @(posedge clk8x) begin
+    always @(posedge clk) begin
         c = c + 1;
     end
     

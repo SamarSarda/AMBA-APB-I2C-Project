@@ -56,7 +56,7 @@ module apb_slave_with_mem_tb();
     initial
     begin
         clk = 0;
-        APB_i.reset_all_apbs; // resetting slave
+        APB_i.reset_APBs; // resetting slave
         assign state = sm.dut.state;
         id = 1;
         sm.mem.initiate();

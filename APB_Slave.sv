@@ -105,7 +105,7 @@ module APB_Slave(APB_Bus.slave sl, Memory_Bus.slave msl, input logic [1:0] id, i
             end else begin//otherwise if we don't, we can tie ready high
                 sl.ready <= 1;
             end
-            msl.ce <= 1;
+            msl.ce <= 0;
         end else if (state == s_write) begin
            msl.wdata <= sl.wdata;
             msl.addr <= sl.addr;

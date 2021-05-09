@@ -28,6 +28,7 @@ module I2C_master_testbench();
     logic SCL;
     logic SDA;
     logic reset;
+    logic ready;
     logic [4:0] master_state;
     logic [7:0] master_data;
 
@@ -37,118 +38,119 @@ module I2C_master_testbench();
     logic [7:0] wdata, rdata, addr;
     
     //interfaces
-    I2C_Bus I2C_Bus();
-    I2C_test_signals test();
+    I2C_Bus I2C_Bus(clk);
     APB_I2C_Bus apb();
     
     //modules
 //    memory mem(.clk(I2C_Memory_Bus_i.clk), .ce(I2C_Memory_Bus_i.ce), .rden(I2C_Memory_Bus_i.rden), 
 //        .wren(I2C_Memory_Bus_i.wren), .wr_data(I2C_Memory_Bus_i.wdata), .rd_data(I2C_Memory_Bus_i.rdata), .addr(I2C_Memory_Bus_i.addr));
-    I2C_Master dut(I2C_Bus.master, apb.master, clk8x, test);
+    I2C_Master dut(I2C_Bus.master, apb.master, clk);
     
     //control vars linkage to interfaces
     assign SCL = I2C_Bus.SCL;
     assign SDA = I2C_Bus.SDA;
-    assign I2C_Bus.reset = reset;
+    assign reset = I2C_Bus.reset;
     
     assign apb.wren = wren;
     assign apb.rden = rden;
     //assign apb.clk = clk8x;// should be set in apb separately
     assign apb.ce = ce;
     assign apb.wdata = wdata;
-    assign apb.rdata = rdata;
+    assign rdata = apb.rdata;
     assign apb.addr = addr;
-    assign apb.error = error;
+    assign error = apb.error;
     
-    assign master_state = test.master_state;
-    assign master_data = test.master_data;
+    assign master_state = dut.state;
+    assign master_data = dut.data;
+    assign ready = apb.ready;
     
     
     initial
     begin
-        clk8x <= 1;
-        assign clk = SCL;
+        clk <= 1;
+        SCL <= 1;
         
-        @(negedge clk8x); reset <= 1; @(posedge clk8x);
-        @(negedge clk8x); reset <= 0; @(posedge clk8x);
+        I2C_Bus.reset_master;
+//        @(negedge clk); reset <= 1; @(posedge clk);
+//        @(negedge clk); reset <= 0; @(posedge clk);
         
-        @(negedge clk);
+        @(negedge SCL);
         rden = 1;
         wren = 0;
         ce = 1;
         addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
 
-        @(posedge clk);//read transfer starting with start state
+        @(posedge SCL);//read transfer starting with start state
         
         //device address bits sent at each negedge
-        @(posedge clk);//device address
+        @(posedge SCL);//device address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //1
         
-        @(posedge clk);//read
+        @(posedge SCL);//read
         //1
-        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//slave acknowledge selection
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//slave acknowledge selection
         
-        @(posedge clk);//memory address
+        @(posedge SCL);//memory address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //1
-        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//acknowledge from slave
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//acknowledge from slave
         
-        @(posedge clk);//data read
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(negedge clk); I2C_Bus.SDA <= 1; @(posedge clk);
+        @(posedge SCL);//data read
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(negedge SCL); I2C_Bus.SDA <= 1; @(posedge SCL);
         
-        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);
-        @(negedge clk); I2C_Bus.SDA <= 1; @(posedge clk);
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);
+        @(negedge SCL); I2C_Bus.SDA <= 1; @(posedge SCL);
         
-        @(negedge clk); I2C_Bus.SDA = 1; @(posedge clk);//acknowledge from master
+        @(negedge SCL); I2C_Bus.SDA = 1; @(posedge SCL);//acknowledge from master
         
         
         //stop happens between here
         
         
-        @(negedge clk);//reseting ce so that master stays idle
+        @(negedge SCL);//reseting ce so that master stays idle
         ce <= 0;
         
-        @(posedge clk); 
+        @(posedge SCL); 
         
         //idle state starts between here
         
-        @(negedge clk);
-        @(posedge clk);//still idle
-        @(posedge clk);//still idle
+        @(negedge SCL);
+        @(posedge SCL);//still idle
+        @(posedge SCL);//still idle
         
         //write tranfer
-        @(negedge clk);
+        @(negedge SCL);
         rden = 0;
         wren = 1;
         wdata = 8'b01011111;
@@ -157,89 +159,350 @@ module I2C_master_testbench();
         
         //write transfer starting with start state
         
-        @(posedge clk);//start
+        @(posedge SCL);//start
         
-        @(posedge clk);//device address
+        @(posedge SCL);//device address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //1
-        @(posedge clk);//write
+        @(posedge SCL);//write
         //0
-        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//slave acknowledge selection
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//slave acknowledge selection
         
-        @(posedge clk);//memory address
+        @(posedge SCL);//memory address
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
+        @(posedge SCL);
         //0
-        @(posedge clk);
-        //1
-        
-        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//acknowledge from slave
-        
-        @(posedge clk);//data write
-        //0
-        @(negedge clk); I2C_Bus.SDA <= 1; @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
-        //1
-        @(posedge clk);
+        @(posedge SCL);
         //1
         
-        @(negedge clk); I2C_Bus.SDA <= 0; @(posedge clk);//acknowledge from slave
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//acknowledge from slave
+        
+        @(posedge SCL);//data write
+        //0
+        @(negedge SCL); I2C_Bus.SDA <= 1; @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//acknowledge from slave
         
         //reseting ce so that master stays idle
-        @(negedge clk);
+        @(negedge SCL);
         ce <= 0;
-        @(posedge clk); //still idle
+        @(posedge SCL); //still idle
         
         //stop happens between here
         
-        @(negedge clk);
+        @(negedge SCL);
         
         //idle state starts between here
         
-        @(posedge clk); //still idle
-        @(posedge clk); //still idle
-        @(posedge clk); //still idle
-        @(posedge clk); //still idle
+        @(posedge SCL); //still idle
+        @(posedge SCL); //still idle
+        @(posedge SCL); //still idle
+        @(posedge SCL); //still idle
            
+//error testing
+//error 1: enable signal becomes 0 before transfer is complete   
+        @(negedge SCL);
+        rden = 1;
+        wren = 0;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
+
+        @(posedge SCL);//read transfer starting with start state
         
+        //device address bits sent at each negedge
+        @(posedge SCL);
+        ce = 0;
+        
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);//idle
+        @(posedge SCL);//idle
+        
+//error 2: slave doesnt acknowledge address (i.e. no slaves with desired address are connected)
+        @(negedge SCL);
+        rden = 1;
+        wren = 0;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
+
+        @(posedge SCL);//read transfer starting with start state
+        
+        //device address bits sent at each negedge
+        @(posedge SCL);//device address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        
+        @(posedge SCL);//read
+        //1
+        @(negedge SCL); //no acknowledge happens here
+         @(posedge SCL);
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);// since ce is active immediately back to addressing state
+        @(posedge SCL);//addressing
+        ce = 0;
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);//idle
+        @(posedge SCL);//idle
+        
+//error 3: no acknowledge on slave memory address
+        @(negedge SCL);
+        rden = 1;
+        wren = 0;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
+
+        @(posedge SCL);//read transfer starting with start state
+        
+        //device address bits sent at each negedge
+        @(posedge SCL);//device address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        
+        @(posedge SCL);//read
+        //1
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//slave acknowledge selection
+        
+        @(posedge SCL);//memory address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        @(negedge SCL);// no acknowledge 
+         @(posedge SCL);
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);// since ce is active immediately back to addressing state
+        @(posedge SCL);//addressing
+        ce = 0;
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);//idle
+        @(posedge SCL);//idle
+        
+//error 4: an X in received data when reading
+        
+        @(negedge SCL);
+        rden = 1;
+        wren = 0;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
+
+        @(posedge SCL);//read transfer starting with start state
+        
+        //device address bits sent at each negedge
+        @(posedge SCL);//device address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        
+        @(posedge SCL);//read
+        //1
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//slave acknowledge selection
+        
+        @(posedge SCL);//memory address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//acknowledge from slave
+        
+        @(posedge SCL);//data read
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(negedge SCL); I2C_Bus.SDA <= 1; @(posedge SCL);
+        
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);
+        @(negedge SCL); I2C_Bus.SDA <= 1'bx; @(posedge SCL);
+        
+        @(negedge SCL); I2C_Bus.SDA = 1; @(posedge SCL);//acknowledge from master
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);// since ce is active immediately back to addressing state
+        @(posedge SCL);//addressing
+        ce = 0;
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);//idle
+        @(posedge SCL);//idle
+        
+//error 5: no acknowledge from slave at the end of a write transfer
+        
+        //write tranfer
+        @(negedge SCL);
+        rden = 0;
+        wren = 1;
+        wdata = 8'b01011111;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
+        
+        //write transfer starting with start state
+        
+        @(posedge SCL);//start
+        
+        @(posedge SCL);//device address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        @(posedge SCL);//write
+        //0
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//slave acknowledge selection
+        
+        @(posedge SCL);//memory address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        
+        @(negedge SCL); I2C_Bus.SDA <= 0; @(posedge SCL);//acknowledge from slave
+        
+        @(posedge SCL);//data write
+        //0
+        @(negedge SCL); I2C_Bus.SDA <= 1; @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        @(posedge SCL);
+        //1
+        
+        @(negedge SCL); //no acknowledge from slave
+         @(posedge SCL);
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);// since ce is active immediately back to addressing state
+        @(posedge SCL);//addressing
+        ce = 0;
+        //between these clock pulses an error should be thrown and the device reset to idle state
+        @(posedge SCL);//idle
+        @(posedge SCL);//idle
         
         
         $finish;
     end
     
     always begin
-        #5 clk8x <= ~clk8x;
+        #5 clk <= ~clk;
     end
 endmodule

@@ -23,8 +23,7 @@
 module I2C_Slave(I2C_Bus.slave sl, 
  I2C_Memory_Bus.slave mem, 
  input logic [7:0] id,
- input logic clk,
- I2C_test_signals test);//id can be 2 bits
+ input logic clk);//id can be 2 bits
  
     logic [3:0] state;
     logic [3:0] next_state, state_completed;
@@ -51,11 +50,6 @@ module I2C_Slave(I2C_Bus.slave sl,
     logic write_flag = 0;
     logic ack = 0;    //flag to make sure that sda is tied low for acknowledge
     
-    //test output signals
-    assign test.slave_state = state;
-    assign test.slave_data = data_buffer;
-    assign test.slave_select = slave_address_buffer;
-    assign test.slave_mem_address = mem_address_buffer;
     
     
     //Start and Stop conditions

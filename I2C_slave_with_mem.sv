@@ -31,4 +31,8 @@ module I2C_slave_with_mem(I2C_Bus i2c_bus, input logic [7:0] id, input clk);
         
     I2C_Slave slave(i2c_bus.slave, I2C_Memory_Bus.slave, id, clk);
     
+    task initiate_mem;
+        mem.initiate;
+    endtask
+    
 endmodule

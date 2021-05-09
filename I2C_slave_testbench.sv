@@ -35,21 +35,20 @@ module I2C_slave_testbench();
     //interfaces
     I2C_Memory_Bus I2C_Memory_Bus_i();
     I2C_Bus I2C_Bus();
-    I2C_test_signals test();
     
     //modules
     memory mem(.clk(I2C_Memory_Bus_i.clk), .ce(I2C_Memory_Bus_i.ce), .rden(I2C_Memory_Bus_i.rden), 
         .wren(I2C_Memory_Bus_i.wren), .wr_data(I2C_Memory_Bus_i.wdata), .rd_data(I2C_Memory_Bus_i.rdata), .addr(I2C_Memory_Bus_i.addr));
         
-    I2C_Slave dut(I2C_Bus.slave, I2C_Memory_Bus.slave, id, clk8x, test);
+    I2C_Slave dut(I2C_Bus.slave, I2C_Memory_Bus.slave, id, clk8x);
     
     //control vars linkage to interfaces
     assign I2C_Bus.SCL = SCL;
     assign SDA = I2C_Bus.SDA;
     assign I2C_Bus.reset = reset;
     
-    assign slave_state = test.slave_state;
-    assign slave_data = test.slave_data;
+    assign slave_state = dut.state;
+    assign slave_data = dut.data_buffer;
     
     initial 
     begin
@@ -64,7 +63,7 @@ module I2C_slave_testbench();
         I2C_Bus.SDA <= 1;
                     //read transfer
         reset = 1;//set state to stop, initial state
-        @(posedge clk);
+        @(posedge clk);//remake reset to work with reset task, and assign scl right away
         SCL <= 1;
         @(negedge clk);
         SCL = 0;

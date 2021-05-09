@@ -23,7 +23,7 @@
 
 
  //change all if/else to case
-module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signals test);
+module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk);
     logic [4:0] state;
     logic [4:0] next_state, state_completed;
     parameter s_stop = 0, s_slave_address = 1, s_rw = 2, 
@@ -35,11 +35,10 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
     logic [2:0] clk_pulse_counter;
     logic [1:0] x2clk_pulse_counter;
     logic reset_flag;
+    logic ready_flag;
     
-    logic ack = 0;    //flag to make sure that sda is tied low for acknowledge
+    logic ack;    //flag to make sure that sda is tied low for acknowledge
     
-    assign test.master_state = state;
-    assign test.master_data = data;
     
     
     always @(posedge clk) begin// make scl 1/8 speed of system clock
@@ -75,7 +74,7 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
             next_state = s_error;
          end else if (state == s_stop && state_completed == s_stop) begin
              next_state = s_idle;
-         end else if (state == s_idle) begin//may require checking other signals for validity
+         end else if (state == s_idle && state_completed == s_idle) begin//may require checking other signals for validity
             if (apb.ce) begin
                  next_state = s_start;//clocked
              end
@@ -141,11 +140,14 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
     //state updater
     always @(posedge clk) begin
         if (ms.reset) begin
-            ms.SCL = 1;
-            clk_pulse_counter = 0;
+            ack <= 0;
+            ready_flag <= 0;
+            ms.SCL <= 1;
+            clk_pulse_counter <= 0;
             state = s_idle;
             next_state = s_idle;
-            state_completed <= s_none;
+            state_completed = s_none;
+            
         end else begin
             state = next_state;//blocking so it happens first
         end
@@ -180,23 +182,34 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
                 state_completed = s_stop;
                 x2clk_pulse_counter = x2clk_pulse_counter + 1;
             end 
+            
+            if (ready_flag) begin
+                apb.ready <= 1;
+                ready_flag <= 0;
+                
+            end else begin
+                apb.ready <= 0;
+            end
+           
         end else if (state == s_error) begin
             apb.error <= 1;
             next_state <= s_idle;
-        end
-        
-    end
-    //state actions on posedge SCL
-    //read SDA on posedge
-    always @(posedge ms.SCL) begin//state completed needs to work only on
-        if (state == s_idle) begin
+            state_completed <= s_none;
+        end else if (state == s_idle) begin
             ms.SDA <= 1; //data line released
             slave_address <= 0;
             mem_address <= 0;
             apb.error <= 0;
             x2clk_pulse_counter <= 0;
-        end else if (state == s_stop) begin // need to check if i need stop or idle or both
-            apb.ready <= 1;
+            state_completed <= s_idle;
+        end 
+        
+    end
+    //state actions on posedge SCL
+    //read SDA on posedge
+    always @(posedge ms.SCL) begin//state completed needs to work only on
+        if (state == s_stop) begin // need to check if i need stop or idle or both
+            //apb.ready <= 1;
         end else if (state == s_start) begin
             slave_address <= apb.addr[7:6];
             mem_address <= apb.addr[5:0];
@@ -253,6 +266,7 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
             end
         end else if (state == s_r_acknowledge) begin
             state_completed <= s_r_acknowledge;
+            ready_flag <= 1;
         end else if (state == s_w_acknowledge) begin
             //1 if error, 0 if ack
             if (ms.SDA == 1) begin //if no acknowledge //error occurrs, probably do not want a ready signal being sent
@@ -261,6 +275,7 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
                 state_completed <= s_none;
             end else begin
                 state_completed <= s_w_acknowledge;
+                ready_flag <= 1;
             end
             counter <= 0;
             //apb timing needs to line up here for write ops
@@ -327,6 +342,8 @@ module I2C_Master(I2C_Bus.master ms, APB_I2C_Bus apb, input clk, I2C_test_signal
                 ms.SDA <= 0;//1 if error, 0 if ack
                 ack <= 0;//1 if error, 0 if ack
                 apb.rdata <= data;
+                
+                //$display("aaaaa");
                 //apb timing needs to line up here for read ops
             end else begin//error occurrs, probably do not want a ready signal being sent
                 

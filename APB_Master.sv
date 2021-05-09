@@ -102,6 +102,9 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm, input clk);
             ms.enable <= 1'b1;
             pm.stable <= 1'b0;
             after_ready <= 1;
+            if (ms.ready) begin
+                
+            end
         end
         
     end
