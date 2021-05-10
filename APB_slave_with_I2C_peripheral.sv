@@ -23,7 +23,9 @@
 module APB_slave_with_I2C_peripheral(
     APB_Bus apb_bus,
     input logic [1:0] apb_slave_id,
-    input clk);
+    input clk,
+    output logic [7:0] rdata,
+    output logic ready);
     
     
     //interfaces
@@ -33,7 +35,7 @@ module APB_slave_with_I2C_peripheral(
     //modules
     I2C_slave_with_mem sm(i2c_bus, 8'b1, clk);//address of i2c slave is 1
     
-    APB_slave_with_I2C_master a2im(apb_bus, i2c_bus, apb_slave_id, clk);
+    APB_slave_with_I2C_master a2im(apb_bus, i2c_bus, apb_slave_id, clk, rdata, ready);
     
     
     task initiate;

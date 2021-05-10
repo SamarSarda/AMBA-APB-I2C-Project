@@ -22,9 +22,12 @@
 
 module apb_master_to_apb_slave_and_mem();
     logic clk;
+    //ready signal
+    //
+    logic ready;
     logic [4:0] apb_slave_state, apb_master_state;
    // logic i2c_master_ready;
-    logic [7:0]  apb_slave_memory_bus_rdata;
+    logic [7:0]  apb_slave_memory_bus_rdata, apb_slave_memory_bus_addr;
     
     logic [1:0] apb_slave_id;
 
@@ -45,10 +48,9 @@ module apb_master_to_apb_slave_and_mem();
     Processor_Bus processor_bus();
     APB_Master master(apb_bus.master, processor_bus.master, clk);
     
-    APB_Slave_with_mem sm(apb_bus, id, clk);
+    APB_Slave_with_mem sm(apb_bus, apb_slave_id, clk, apb_bus.rdata, apb_bus.ready);
     
     //apb
-    assign a_ready = apb_bus.ready;
     assign enable = apb_bus.enable;
     assign a_write = apb_bus.write;
     assign a_reset = apb_bus.reset;
@@ -56,6 +58,7 @@ module apb_master_to_apb_slave_and_mem();
     assign a_addr = apb_bus.addr;
     assign a_sel = apb_bus.sel;
     assign a_rdata = apb_bus.rdata;
+    assign a_ready = apb_bus.ready;
     
     //processor
     assign processor_bus.write = p_write;
@@ -73,8 +76,10 @@ module apb_master_to_apb_slave_and_mem();
     assign ce = sm.Memory_Bus_i.ce;
     assign wren = sm.Memory_Bus_i.wren;
     assign rden = sm.Memory_Bus_i.rden;
-    
-    
+    assign apb_slave_memory_bus_addr = sm.Memory_Bus_i.addr;
+    assign mem_ready = sm.Memory_Bus_i.ready;
+//    assign internal_ready = master.ms.ready;
+//    assign external_ready = apb_bus.ready;
     
     
     
@@ -89,7 +94,7 @@ module apb_master_to_apb_slave_and_mem();
         clk = 0;
         sm.initiate;
         apb_bus.reset_APBs;
-        
+        //sm.Memory_Bus_i.ready = 1;
         
         @(posedge clk);
         @(posedge clk);
@@ -97,13 +102,13 @@ module apb_master_to_apb_slave_and_mem();
         @(posedge clk);
         p_write = 1;
         p_sel = 1;
-        p_addr = 8'b01000001;//first 2 bits are i2c peripheral device address, rest are mem address
+        p_addr = 8'b00000001;//first 2 bits are i2c peripheral device address, rest are mem address
         p_wdata = 5;
         start = 1;
         @(posedge clk);
         start = 0;
         
-        while (!apb_bus.ready) begin
+        while (!apb_bus.ready || !enable) begin
             @(posedge clk);
         end
 
@@ -114,17 +119,19 @@ module apb_master_to_apb_slave_and_mem();
         @(posedge clk);
         p_write = 0;
         p_sel = 1;
-        p_addr = 8'b01000001;//first 2 bits are i2c peripheral device address, rest are mem address
+        p_addr = 8'b00000001;//first 2 bits are i2c peripheral device address, rest are mem address
         start = 1;
         @(posedge clk);
         start = 0;
         
-        while (!apb_bus.ready) begin
+        while (!apb_bus.ready || !enable) begin
             @(posedge clk);
         end
         
         @(posedge clk);
         p_sel = 0;
+        @(posedge clk);
+        @(posedge clk);
         @(posedge clk);
         
         

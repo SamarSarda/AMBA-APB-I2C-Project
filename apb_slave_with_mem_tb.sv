@@ -28,12 +28,13 @@ module apb_slave_with_mem_tb();
     logic ready, wren, ce, rden;
     logic [2:0] state;
     logic [1:0] id;
-    logic [7:0] wdata, rdata, addr;
+    logic [7:0] wdata, rdata, addr, apb_rdata;
+    
 
     //interfaces
     APB_Bus APB_i(clk);
     
-   APB_Slave_with_mem sm(APB_i, id, clk);
+   APB_Slave_with_mem sm(APB_i, id, clk, APB_i.rdata, APB_i.ready);
         //we are simulating a submodule ready signal for testing wait cycles in the apb slave, 
           //so usesSubModuleReady is set to 1 to allow us to control ready signal explicitly
    
@@ -44,6 +45,7 @@ module apb_slave_with_mem_tb();
     assign APB_i.enable = enable;
     assign APB_i.wdata = wdata;
     assign APB_i.addr = addr;
+    assign apb_rdata = APB_i.rdata;
     
     //memory
     assign ready = sm.Memory_Bus_i.ready;
@@ -60,7 +62,7 @@ module apb_slave_with_mem_tb();
         assign state = sm.dut.state;
         id = 1;
         sm.mem.initiate();
-        sm.Memory_Bus_i.ready = 1;
+        //sm.Memory_Bus_i.ready = 1;
         @(posedge clk);
         @(posedge clk);
         @(posedge clk);   //write transfer
@@ -72,6 +74,7 @@ module apb_slave_with_mem_tb();
         @(posedge clk);
         enable = 1;
         @(posedge clk);
+        @(posedge clk);
         enable =0;
         sel = 0;
         @(posedge clk);    //read transfer
@@ -82,114 +85,11 @@ module apb_slave_with_mem_tb();
         @(posedge clk);
         enable = 1;
         @(posedge clk);
+        @(posedge clk);
         enable =0;
         sel = 0;
         @(posedge clk);
-        @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 5;
-        @(posedge clk);
-        write = 1;
-        sel = 1;
-        wdata = 4;
-        addr= 5;
-        sm.Memory_Bus_i.ready = 0;
-        @(posedge clk);
-        enable = 1;
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        sm.Memory_Bus_i.ready = 1;
-        @(posedge clk);
-        enable =0;
-        sel = 0;  
-        @(posedge clk);
-        @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 5;
-        @(posedge clk);
-        write = 0;
-        sel = 1;
-        addr= 5;
-        sm.Memory_Bus_i.ready = 0;
-        @(posedge clk);
-        enable = 1;
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        sm.Memory_Bus_i.ready = 1;
-        @(posedge clk);
-        enable =0;
-        sel = 0;  
-        @(posedge clk);
-        @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 1;
-        @(posedge clk);
-        write = 1;
-        sel = 1;
-        wdata = 3;
-        addr= 4;
-        sm.Memory_Bus_i.ready = 0;
-        @(posedge clk);
-        enable = 1;
-        @(posedge clk);
-        sm.Memory_Bus_i.ready = 1;
-        @(posedge clk);
-        enable =0;
-        sel = 0;  
-        @(posedge clk);
-        @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 1;
-        @(posedge clk);
-        write = 0;
-        sel = 1;
-        addr= 4;
-        sm.Memory_Bus_i.ready = 0;
-        @(posedge clk);
-        enable = 1;
-        @(posedge clk);
-        sm.Memory_Bus_i.ready = 1;
-        @(posedge clk);
-        enable =0;
-        sel = 0;  
-        @(posedge clk);
-        @(posedge clk);     //write transfer with wait states
-        //APB_i.wait_cycles = 3;
-        @(posedge clk);
-        write = 1;
-        sel = 1;
-        wdata = 2;
-        addr= 3;
-        sm.Memory_Bus_i.ready = 0;
-        @(posedge clk);
-        enable = 1;
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        sm.Memory_Bus_i.ready = 1;
-        @(posedge clk);
-        enable =0;
-        sel = 0;  
-        @(posedge clk);
-        @(posedge clk);     //read transfer with wait states
-        //APB_i.wait_cycles = 3;
-        @(posedge clk);
-        write = 0;
-        sel = 1;
-        addr= 3;
-        sm.Memory_Bus_i.ready = 0;
-        @(posedge clk);
-        enable = 1;
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
-        sm.Memory_Bus_i.ready = 1;
-        @(posedge clk);
-        enable =0;
-        sel = 0;  
-        @(posedge clk);
+        
         $finish;
     end
     always begin

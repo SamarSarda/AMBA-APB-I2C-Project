@@ -23,8 +23,9 @@
 module APB_Slave_with_mem(
     APB_Bus APB_i,
     input logic [1:0] id,
-    input clk
-    );
+    input clk,
+    output logic [7:0] rdata,
+    output logic ready);
     
     Memory_Bus Memory_Bus_i();
 
@@ -34,15 +35,18 @@ module APB_Slave_with_mem(
             .wren(Memory_Bus_i.wren),
              .wr_data(Memory_Bus_i.wdata),
               .rd_data(Memory_Bus_i.rdata),
-               .addr(Memory_Bus_i.addr));
+               .addr(Memory_Bus_i.addr),
+                .ready(Memory_Bus_i.ready));
                
      APB_Slave dut(.sl(APB_i.slave),
      .msl(Memory_Bus_i.slave),
       .id(id),
        .usesSubModuleReady(1),
-        .clk(clk));
+        .clk(clk), 
+         .rdata(rdata),
+          .ready(ready));
         
-        task initiate;
+    task initiate;
         APB_i.reset_APBs;
         mem.initiate;
     endtask

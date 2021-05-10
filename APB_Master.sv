@@ -83,6 +83,8 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm, input clk);
             if (after_ready) begin
                 pm.stable <= 1'b1;
                 after_ready <= 0;
+            end else begin
+                pm.stable <= 1'b0;
             end
         end else if (state == s_setup) begin
             //should be only place where address, wdata and wait cycles are changed, 
@@ -99,11 +101,14 @@ module APB_Master(APB_Bus.master ms, Processor_Bus.master pm, input clk);
             end
         end else if (state == s_access) begin
             ms.sel <= pm.sel; // assume that pm will always give valid id, but consider throwing errors
-            ms.enable <= 1'b1;
+            
             pm.stable <= 1'b0;
             after_ready <= 1;
-            if (ms.ready) begin
-                
+            if (ms.ready) begin//this code can probably be deleted, i think it doesnt execute ever
+                ms.enable <= 1'b0;
+                pm.rdata <= ms.rdata;
+            end else begin
+                ms.enable <= 1'b1;
             end
         end
         

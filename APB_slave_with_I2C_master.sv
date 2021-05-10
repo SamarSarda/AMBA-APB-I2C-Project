@@ -24,8 +24,9 @@ module APB_slave_with_I2C_master(
     APB_Bus apb_bus,
     I2C_Bus i2c_bus,
     input logic [1:0] id,
-    input clk
-    );
+    input clk,
+    output logic [7:0] rdata,
+    output logic ready);
    
     //interfaces
     APB_I2C_Bus apb_i2c_bus();
@@ -38,7 +39,9 @@ module APB_slave_with_I2C_master(
      .msl(memory_bus.slave),
       .id(id),
        .usesSubModuleReady(1'b1),
-        .clk(clk));
+        .clk(clk),
+         .rdata(rdata),
+          .ready(ready));
         
     //connecting io of 2 different busses
     assign apb_i2c_bus.wren = memory_bus.wren;

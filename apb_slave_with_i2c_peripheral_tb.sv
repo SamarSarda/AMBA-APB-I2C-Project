@@ -39,7 +39,7 @@ module apb_slave_with_i2c_peripheral_tb();
     APB_Bus apb_bus(clk);
     
     //modules
-    APB_slave_with_I2C_peripheral dut(apb_bus, apb_slave_id, clk);
+    APB_slave_with_I2C_peripheral dut(apb_bus, apb_slave_id, clk, apb_bus.rdata, apb_bus.ready);
 
     
     //apb

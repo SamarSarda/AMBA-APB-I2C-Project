@@ -32,7 +32,7 @@ interface APB_Bus (input logic clk);
     endtask
     
     modport master (input ready, rdata, reset, output write, sel, wdata, enable, wait_cycles, addr);
-    modport slave (input write, sel, wdata, enable, reset, wait_cycles, addr, output ready, rdata);
+    modport slave (input write, sel, wdata, enable, reset, wait_cycles, addr); // ready and rdata oputputs are unique to each slave, and need to be muxed
 endinterface
 
 interface Memory_Bus();//when connecting to a memory module, tie ready high
