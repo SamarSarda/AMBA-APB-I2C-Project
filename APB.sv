@@ -21,7 +21,7 @@
 
 interface APB_Bus (input logic clk);
     logic write, ready, enable, reset;
-    logic [7:0] wdata, rdata, addr, wait_cycles;
+    logic [7:0] wdata, rdata, addr;
     logic [1:0] sel;
     
     task reset_APBs; 
@@ -31,11 +31,12 @@ interface APB_Bus (input logic clk);
     reset =1'b0;
     endtask
     
-    modport master (input ready, rdata, reset, output write, sel, wdata, enable, wait_cycles, addr);
-    modport slave (input write, sel, wdata, enable, reset, wait_cycles, addr); // ready and rdata oputputs are unique to each slave, and need to be muxed
+    modport master (input ready, rdata, reset, output write, sel, wdata, enable, addr);
+    modport slave (input write, sel, wdata, enable, reset, addr); 
+    // ready and rdata oputputs are unique to each slave, and need to be muxed
 endinterface
 
-interface Memory_Bus();//when connecting to a memory module, tie ready high
+interface Memory_Bus();
     logic wren, rden, ce, ready, error;
     logic [7:0] wdata, rdata, addr;
 
@@ -43,14 +44,14 @@ interface Memory_Bus();//when connecting to a memory module, tie ready high
     modport mem (output rdata, input wdata, wren, rden, ce, addr, inout ready);
 endinterface 
 
-interface Processor_Bus(); // not sure if processor should determine wait cycles, but it seems logical to pass that functionality to the processor as opposed to a general purpose bus
+interface Processor_Bus(); 
     logic write, stable, start;
-    logic [7:0] wdata, rdata, addr, wait_cycles;
+    logic [7:0] wdata, rdata, addr;
     logic [1:0] sel;
 
 
-    modport processor (input rdata, stable, output write, sel, addr, wdata, start, wait_cycles);
-    modport master (input write, sel, addr, wdata, start, wait_cycles, output rdata, stable);
+    modport processor (input rdata, stable, output write, sel, addr, wdata, start);
+    modport master (input write, sel, addr, wdata, start, output rdata, stable);
 endinterface
 
 

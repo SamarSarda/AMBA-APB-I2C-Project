@@ -25,7 +25,6 @@ module I2C_testbench();
     
     //control vars to be linked with interfaces
     logic clk;//clk
-    logic clk8x;//8 times as fast clk
     
     //I2C signals
     logic SCL;
@@ -109,83 +108,7 @@ module I2C_testbench();
 //        @(negedge clk); reset <= 0; @(posedge clk);
         I2C_Bus.reset_I2Cs;
         
-        @(negedge SCL);
-        
-        rden = 1;
-        wren = 0;
-        ce = 1;
-        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
-
-        @(posedge SCL);//read transfer starting with start state
-        
-        //device address bits sent at each negedge
-        @(posedge SCL);//device address
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //1
-        
-        @(posedge SCL);//read
-        //1
-        @(posedge SCL);//slave acknowledge selection
-        
-        @(posedge SCL);//memory address
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //0
-        @(posedge SCL);
-        //1
-        @(posedge SCL);//acknowledge from slave
-        
-        @(posedge SCL);//data read
-        @(posedge SCL);
-        @(posedge SCL);
-        @(posedge SCL);
-        @(posedge SCL);
-        @(posedge SCL);
-        
-        @(posedge SCL);
-        @(posedge SCL);
-        
-        @(posedge SCL);//acknowledge from master
-        
-        
-        //stop happens between here
-        
-        
-        @(negedge SCL);//reseting ce so that master stays idle
-        ce <= 0;
-        
-        @(posedge SCL); 
-        
-        //idle state starts between here
-        
-        @(negedge SCL);
-        @(posedge SCL);//still idle
-        @(posedge SCL);//still idle
-        
-        //write tranfer
+         //write tranfer
         @(negedge SCL);
 
         rden = 0;
@@ -272,6 +195,85 @@ module I2C_testbench();
         @(posedge SCL); //still idle
         @(posedge SCL); //still idle
            
+        
+        @(negedge SCL);
+        
+        
+        rden = 1;
+        wren = 0;
+        ce = 1;
+        addr = 8'b01000001;//first 2 bits device id, second 6 bits mem address
+
+        @(posedge SCL);//read transfer starting with start state
+        
+        //device address bits sent at each negedge
+        @(posedge SCL);//device address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        
+        @(posedge SCL);//read
+        //1
+        @(posedge SCL);//slave acknowledge selection
+        
+        @(posedge SCL);//memory address
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //0
+        @(posedge SCL);
+        //1
+        @(posedge SCL);//acknowledge from slave
+        
+        @(posedge SCL);//data read
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        @(posedge SCL);
+        
+        @(posedge SCL);
+        @(posedge SCL);
+        
+        @(posedge SCL);//acknowledge from master
+        
+        
+        //stop happens between here
+        
+        
+        @(negedge SCL);//reseting ce so that master stays idle
+        ce <= 0;
+        
+        @(posedge SCL); 
+        
+        //idle state starts between here
+        
+        @(negedge SCL);
+        @(posedge SCL);//still idle
+        @(posedge SCL);//still idle
+        
+       
         
         
         

@@ -24,7 +24,6 @@ module I2C_slave_with_mem_testbench();
     
     //control vars to be linked with interfaces
     logic clk;
-    logic clk8x;
     logic SCL;
     logic SDA;
     logic reset;

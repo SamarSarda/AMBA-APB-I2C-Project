@@ -20,8 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-//make test modport to make valuable signals visible e.g. state, buffers, id
-//chanege all if/else to case
+
 interface I2C_Bus (input logic clk);
     logic SDA, SCL, reset;
     

@@ -42,8 +42,6 @@ module I2C_master_testbench();
     APB_I2C_Bus apb();
     
     //modules
-//    memory mem(.clk(I2C_Memory_Bus_i.clk), .ce(I2C_Memory_Bus_i.ce), .rden(I2C_Memory_Bus_i.rden), 
-//        .wren(I2C_Memory_Bus_i.wren), .wr_data(I2C_Memory_Bus_i.wdata), .rd_data(I2C_Memory_Bus_i.rdata), .addr(I2C_Memory_Bus_i.addr));
     I2C_Master dut(I2C_Bus.master, apb.master, clk);
     
     //control vars linkage to interfaces

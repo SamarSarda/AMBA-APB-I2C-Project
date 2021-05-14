@@ -30,7 +30,7 @@ module I2C_slave_testbench();
     logic reset;
     logic [7:0] id;
     logic [3:0] slave_state;
-    logic [7:0] slave_data;
+    logic [7:0] slave_data, addr;
     
     //interfaces
     I2C_Memory_Bus I2C_Memory_Bus_i();
@@ -48,16 +48,18 @@ module I2C_slave_testbench();
     assign I2C_Bus.reset = reset;
     
     assign slave_state = dut.state;
+    assign addr = dut.mem_address_buffer;
     assign slave_data = dut.data_buffer;
     
     initial 
     begin
     id <= 1;
-    mem.initiate();
+    //mem.initiate();
     end
     initial
     begin
         clk <= 1;
+        mem.initiate();
         clk8x <= 1;
         SCL <= 0;
         I2C_Bus.SDA <= 1;

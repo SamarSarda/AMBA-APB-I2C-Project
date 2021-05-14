@@ -21,39 +21,21 @@
 
 
 module APB_Slave(APB_Bus.slave sl, 
-Memory_Bus.slave msl, 
-input logic [1:0] id, 
-input logic clk, 
-input logic usesSubModuleReady,
-output logic [7:0] rdata,
-output logic ready); // fix next state logic
+    Memory_Bus.slave msl, 
+    input logic [1:0] id, 
+    input logic clk, 
+    input logic usesSubModuleReady,
+    output logic [7:0] rdata,
+    output logic ready); 
+
+    //states
     logic [2:0] state;
     logic [2:0] next_state;
     parameter s_idle = 0, s_write = 1, s_read = 2, s_write_done=3, s_read_done=4;
-    logic [7:0] cycles_remaining;
-    logic ready_flag;
-    assign rdata = msl.rdata;
-    assign msl.ce = sl.enable;
-    //assign msl.clk = sl.clk; // do exterally
-    //so in states
-    //assign msl.addr = sl.addr;
-    //assign msl.wdata = sl.wdata;
-    //assign sl.rdata = msl.rdata;
-    //assign sl.ready = msl.ready;
-    //assign sl.ready = ready;
-    //assign msl.ce = sl.enable; //done in states kind of, no reliance on sl
     
-    //combinational logic
-    //attached device setting ready if it wants to have control of it
-    //otherwise, apb slave ties it high always
-//    always @(*) begin
-//        if (msl.ready === 1) begin
-//            ready = 1;
-//        end else if (msl.ready === 0) begin
-//            ready = 0;
-//        end
-        
-//    end
+    //connecting wires
+    assign rdata = msl.rdata;//rdata is tied to memory rdata
+    assign msl.ce = sl.enable;//ce/enable is passed through to memory from apb
     
     //States
     always @(*) begin
@@ -78,11 +60,11 @@ output logic ready); // fix next state logic
                     end 
             endcase
         end else if (state == s_write) begin
-            if (ready) begin // when this module writes a ready signal, signals will be ready next cycle, so we need to go to idle state
+            if (ready) begin // when this module writes a ready signal, signals will be ready next cycle
                 next_state <= s_idle;
             end
         end else if (state == s_read) begin
-            if (ready) begin
+            if (ready) begin // when this module writes a ready signal, signals will be ready next cycle
                 next_state <= s_idle;
                 
             end
@@ -95,12 +77,11 @@ output logic ready); // fix next state logic
         if (sl.reset) begin
             state = s_idle;
             next_state = s_idle; 
-            if (usesSubModuleReady) begin//if we use the submodule's ready signal, our output register ready needs to be reset here
+            if (usesSubModuleReady) begin//if we use the submodule's ready signal, our output register ready gets connected here
                 assign ready = msl.ready;
-            end else begin
+            end else begin // else tie to 1 for 2 cycle transfers
                 ready <= 1;
             end
-            //msl.ready <= 1'b1;
         end else begin
             state = next_state;
         end
@@ -108,44 +89,17 @@ output logic ready); // fix next state logic
     //Control Signals
     always @(posedge clk) begin
         if (state == s_idle) begin
-            //msl.ready <= 1'b1;//tie ready high while enable is low, 
-            //so that attached device can tie low if necessary, but doesnt need to if no wait states
             msl.wren <= 1'b0;
             msl.rden <= 1'b0;
-            
-//            if (usesSubModuleReady) begin//if we use the submodule's ready signal, our output register ready needs to be reset here
-//                ready <= 0;
-//            end else begin//otherwise if we don't, we can tie ready high
-//                ready <= 1;
-//            end 
-            //msl.ce <= sl.enable;
         end else if (state == s_write) begin
            msl.wdata <= sl.wdata;
             msl.addr <= sl.addr;
             msl.wren <= 1'b1;
             msl.rden <= 1'b0;
-            //msl.ce <= sl.enable;
-//            if (usesSubModuleReady) begin
-//                if (msl.ready == 1) begin 
-//                    ready <= 1;
-//                end
-//            end else begin
-//                ready <= 1;
-//            end
         end else if (state == s_read) begin
             msl.addr <= sl.addr;
             msl.wren <= 1'b0;
             msl.rden <= 1'b1;
-            //msl.ce <= sl.enable;
-//            if (usesSubModuleReady) begin
-//                if (msl.ready == 1) begin 
-//                    ready <= 1;
-                    
-//                end
-//            end else begin
-//                ready <= 1;
-                
-//            end
         end
         
     end
